@@ -64,7 +64,7 @@ ARGUMENTS
 EXAMPLES
 --------
 
-    easy-update-solr4files-index -o value
+    easy-update-solr4files-index add 9da0541a-d2c8-432e-8129-979a9830b427
 
 
 INSTALLATION AND CONFIGURATION
