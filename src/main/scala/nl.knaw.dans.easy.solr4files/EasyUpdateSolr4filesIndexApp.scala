@@ -15,12 +15,25 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import scala.util.{ Try, Success }
+import java.net.URL
+
+import scala.util.{ Failure, Success, Try }
 
 class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoCloseable {
 
+  def init(storeUrl: URL): Try[String] =
+    Failure(new NotImplementedError(s"init not implemented ($storeUrl)"))
 
-  // The application's API here. This is what is used by driver or entry-point objects.
+  def add(baseUrl: URL): Try[String] =
+    Failure(new NotImplementedError(s"add not implemented ($baseUrl)"))
+
+  final def update(baseUrl: URL): Try[String] = for {
+    _ <- delete(baseUrl)
+    s <- add(baseUrl)
+  } yield s
+
+  def delete(baseUrl: URL): Try[String] =
+    Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))
 
   def init(): Try[Unit] = {
     // Do any initialization of the application here. Typical examples are opening

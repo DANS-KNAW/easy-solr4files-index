@@ -15,11 +15,20 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.Paths
+import java.net.URL
 
-import scala.util.{Failure, Success, Try}
+import org.rogach.scallop.{ ScallopOption, Subcommand }
+
+import scala.util.{ Failure, Success, Try }
 
 package object solr4files {
+  type UUID = String
+  type StoreName = String
+  type SingleBagCommand = Subcommand {
+    def baseURL(): URL
+    val bagUuid: ScallopOption[UUID]
+    val bagStore: ScallopOption[StoreName]
+  }
 
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib

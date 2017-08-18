@@ -8,9 +8,9 @@ easy-update-solr4files-index
 SYNOPSIS
 --------
 
-    easy-update-solr4files-index (synopsis of command line parameters)
-    easy-update-solr4files-index (... possibly multiple lines for subcommands)
-
+  easy-update-solr4files-index {add|delete|update} [-s <bag-store>] <uuid>
+  easy-update-solr4files-index {init} <bag-store>
+  easy-update-solr4files-index run-service
 
 DESCRIPTION
 -----------
@@ -26,8 +26,39 @@ ARGUMENTS
         --help      Show help message
         --version   Show version of this program
 
+    Subcommand: add - Add a bag to the SOLR index
+      -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
+          --help               Show help message
+    
+     trailing arguments:
+      bag-uuid (required)
+    ---
+    
+    Subcommand: update - Update a bag in the SOLR index
+      -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
+          --help               Show help message
+    
+     trailing arguments:
+      bag-uuid (required)
+    ---
+    
+    Subcommand: delete - Delete a bag from the SOLR index
+      -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
+          --help               Show help message
+    
+     trailing arguments:
+      bag-uuid (required)
+    ---
+    
+    Subcommand: init - Rebuild the SOLR index from scratch for a bagstore
+          --help   Show help message
+    
+     trailing arguments:
+      bag-store (required)
+    ---
+    
     Subcommand: run-service - Starts EASY Update Solr4files Index as a daemon that services HTTP requests
-        --help   Show help message
+          --help   Show help message
     ---
 
 EXAMPLES
