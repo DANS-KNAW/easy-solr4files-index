@@ -47,11 +47,11 @@ object Command extends App with DebugEnhancedLogging {
   private def runCommand(app: EasyUpdateSolr4filesIndexApp): Try[FeedBackMessage] = {
     commandLine.subcommand
       .collect {
-        case add @ commandLine.add => app.add(add.baseURL())
-        case update @ commandLine.update => app.update(update.baseURL())
-        case delete @ commandLine.delete => app.delete(delete.baseURL())
-        case init @ commandLine.init => app.init(init.baseUrl())
-        // case commandLine.runService => runAsService(app)
+        case update @ commandLine.update => app.update(update.baseUri())
+        case delete @ commandLine.delete => app.delete(delete.baseUri())
+        case init @ commandLine.init if init.bagStore.isSupplied => app.init(init.uri())
+        case init @ commandLine.init if !init.bagStore.isSupplied => app.initAll(init.uri())
+        case commandLine.runService => ???
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
   }

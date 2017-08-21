@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy
 
-import java.net.URL
+import java.net.URI
 
 import org.rogach.scallop.{ ScallopOption, Subcommand }
 
@@ -25,8 +25,12 @@ package object solr4files {
   type UUID = String
   type StoreName = String
   type SingleBagCommand = Subcommand {
-    def baseURL(): URL
+    def baseUri(): URI
     val bagUuid: ScallopOption[UUID]
+    val bagStore: ScallopOption[StoreName]
+  }
+  type InitCommand = Subcommand {
+    def uri(): URI
     val bagStore: ScallopOption[StoreName]
   }
 

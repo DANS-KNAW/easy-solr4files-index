@@ -64,6 +64,10 @@
             <artifactId>dans-scala-lib</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-xml_2.11</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.jsuereth</groupId>
             <artifactId>scala-arm_2.11</artifactId>
         </dependency>
@@ -91,6 +95,10 @@
         <dependency>
             <groupId>org.scalatra</groupId>
             <artifactId>scalatra-scalate_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-daemon</groupId>

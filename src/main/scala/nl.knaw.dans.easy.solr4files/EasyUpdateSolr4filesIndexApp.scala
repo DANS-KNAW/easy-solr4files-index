@@ -15,24 +15,36 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URL
+import java.net.URI
+
+import nl.knaw.dans.easy.solr4files.components.Vault
+import nl.knaw.dans.lib.error.TraversableTryExtensions
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
-class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoCloseable {
+class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoCloseable
+  with Vault
+  with DebugEnhancedLogging {
 
-  def init(storeUrl: URL): Try[String] =
-    Failure(new NotImplementedError(s"init not implemented ($storeUrl)"))
+  def initAll(stores: URI): Try[String] = {
+    getStores(stores)
+      .flatMap(_.map(init).collectResults)
+      .map(_ => "Updated all bags of all stores")
+  }
 
-  def add(baseUrl: URL): Try[String] =
-    Failure(new NotImplementedError(s"add not implemented ($baseUrl)"))
+  def init(bagStore: URI): Try[String] = {
+    logger.info(s"Updating bags of $bagStore")
+    Failure(new NotImplementedError(s"init bags not implemented ($bagStore)"))
+  }
 
-  final def update(baseUrl: URL): Try[String] = for {
-    _ <- delete(baseUrl)
-    s <- add(baseUrl)
-  } yield s
+  def update(baseUri: URI): Try[String] = for {
+    filesXML: Elem <- getFilesXml(baseUri)
+    files <- textFiles(filesXML)
+  } yield s"Updated $baseUri"
 
-  def delete(baseUrl: URL): Try[String] =
+  def delete(baseUrl: URI): Try[String] =
     Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))
 
   def init(): Try[Unit] = {

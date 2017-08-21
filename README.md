@@ -50,11 +50,11 @@ ARGUMENTS
       bag-uuid (required)
     ---
     
-    Subcommand: init - Rebuild the SOLR index from scratch for a bagstore
+    Subcommand: init - Rebuild the SOLR index from scratch for one or all bagstore(s)
           --help   Show help message
     
      trailing arguments:
-      bag-store (required)
+      bag-store (not required)
     ---
     
     Subcommand: run-service - Starts EASY Update Solr4files Index as a daemon that services HTTP requests

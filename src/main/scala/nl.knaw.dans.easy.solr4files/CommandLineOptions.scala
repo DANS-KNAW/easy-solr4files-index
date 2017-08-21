@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URL
+import java.net.URI
 
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
 
@@ -45,14 +45,13 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |""".stripMargin)
 
 
-  private val vault = Some(configuration.properties.getString("vault.url")).get // TODO error handling
+  private val vault = new URI(configuration.properties.getString("vault.url")) // TODO error handling
   private val defaultBagStore = Some(configuration.properties.getString("default.bag-store"))
 
   private def createSingleBagCommand(name: StoreName, description: UUID): SingleBagCommand = {
     new Subcommand(name) {
-      def baseURL(): URL = {
-        // TODO error handling
-        new URL(s"$vault/stores/${ bagStore() }/bags/${ bagUuid() }")
+      def baseUri(): URI = {
+        vault.resolve(s"stores/${ bagStore() }/bags/${ bagUuid() }")
       }
 
       descr(description)
@@ -66,17 +65,18 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     }
   }
 
-  val add: SingleBagCommand = createSingleBagCommand("add", "Add a bag to the SOLR index")
   val update: SingleBagCommand = createSingleBagCommand("update", "Update a bag in the SOLR index")
   val delete: SingleBagCommand = createSingleBagCommand("delete", "Delete a bag from the SOLR index")
-  val init = new Subcommand("init") {
-    def baseUrl(): URL = {
-      // TODO error handling
-      new URL(s"$vault/stores/${ bagStore() }/bags")
+  val init: InitCommand = new Subcommand("init") {
+    def uri(): URI = {
+      if (bagStore.isSupplied)
+        vault.resolve(s"stores/${ bagStore() }/bags/")
+      else
+        vault.resolve(s"stores/")
     }
 
-    descr("Rebuild the SOLR index from scratch for a bagstore")
-    val bagStore: ScallopOption[StoreName] = trailArg(name = "bag-store", required = true)
+    descr("Rebuild the SOLR index from scratch for one or all bagstore(s)")
+    val bagStore: ScallopOption[StoreName] = trailArg(name = "bag-store", required = false)
     footer(SUBCOMMAND_SEPARATOR)
   }
   val runService = new Subcommand("run-service") {
@@ -84,7 +84,6 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
       "Starts EASY Update Solr4files Index as a daemon that services HTTP requests")
     footer(SUBCOMMAND_SEPARATOR)
   }
-  addSubcommand(add)
   addSubcommand(update)
   addSubcommand(delete)
   addSubcommand(init)
