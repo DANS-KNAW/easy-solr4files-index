@@ -12,7 +12,10 @@ import scala.xml.{ Elem, XML }
 
 trait Vault extends DebugEnhancedLogging {
 
-  /** @return URI's with trailing slash: ready to extend the path for a specific file */
+  /**
+   * @param storeURI bag store URL (no terminating slash!) returning bags in a store
+   * @return @return URI's with trailing slash: ready to extend the path for a specific file
+   */
   def getBags(storeURI: URI): Try[Seq[URI]] = Try {
     val storeName = Paths.get(storeURI.getPath).getParent.getFileName
     val vaultURI = vaultFrom(storeURI)
@@ -22,7 +25,10 @@ trait Vault extends DebugEnhancedLogging {
     }
   }
 
-  /** @return URI's without trailing slash: ready for a HTTP request that lists the bags */
+  /**
+   * @param baseURI bag store URL (no terminating slash!) returning store names
+   * @return @return URI's without trailing slash: ready for a HTTP request that lists the bags
+   */
   def getStores(baseURI: URI): Try[Seq[URI]] = Try {
     val vaultURI = vaultFrom(baseURI)
     linesFrom(baseURI).map { line =>
@@ -35,11 +41,11 @@ trait Vault extends DebugEnhancedLogging {
   def getFilesXml(baseUri: URI): Try[Elem] = Try {
     val uri = baseUri.resolve("metadata/files.xml")
     logger.info(s"Getting $uri")
-    XML.load(openStream(uri))
+    openManagedStream(uri).acquireAndGet(XML.load)
   }
 
   def textFiles(filesXML: Elem): Try[Seq[Path]] = {
-    // TODO filter on mime type
+    // TODO filter on mime type, move to FilesXml trait
     logger.info(s"${ (filesXML \ "file").size } files found")
     Success(Seq[Path]())
   }
@@ -49,12 +55,13 @@ trait Vault extends DebugEnhancedLogging {
   }
 
   private def linesFrom(uri: URI): Seq[String] = {
-    readLines(openStream(uri)).asScala
+    openManagedStream(uri).acquireAndGet(readLines).asScala
   }
 
-  private def openStream(uri: URI) = {
-    // TODO fix "IllegalArgumentException: URI is not absolute" if vault is not configured
-    // TODO fox "FileNotFoundException .../MISSING_BAG_STORE/..." if neither default nor explicit store name was specified
-    uri.toURL.openStream() // TODO close
+  private def openManagedStream(uri: URI) = {
+    // TODO friendly error messages, some situations:
+    // "IllegalArgumentException: URI is not absolute" if vault is not configured
+    // "FileNotFoundException .../MISSING_BAG_STORE/..." if neither default nor explicit store name was specified
+    resource.managed(uri.toURL.openStream())
   }
 }
