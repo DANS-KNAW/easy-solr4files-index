@@ -20,6 +20,9 @@ import java.net.URI
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
+  type UUID = String
+  type StoreName = String
+
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-update-solr4files-index"
@@ -45,40 +48,44 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |""".stripMargin)
 
 
-  private val vault = new URI(configuration.properties.getString("vault.url")) // TODO error handling
-  private val defaultBagStore = Some(configuration.properties.getString("default.bag-store"))
+  private val vault = new URI(configuration.properties.getString("vault.url", ""))
+  private val defaultBagStore = Some(configuration.properties.getString("default.bag-store", "MISSING_BAG_STORE"))
 
-  private def createSingleBagCommand(name: StoreName, description: UUID): SingleBagCommand = {
-    new Subcommand(name) {
-      def baseUri(): URI = {
-        vault.resolve(s"stores/${ bagStore() }/bags/${ bagUuid() }")
-      }
+  case class SingleBagCommand(name: String, description: String) extends Subcommand(name) {
 
-      descr(description)
-      val bagStore: ScallopOption[StoreName] = opt[StoreName](
-        "bag-store",
-        default = defaultBagStore,
-        short = 's',
-        descr = "Name of the bag store")
-      val bagUuid: ScallopOption[UUID] = trailArg(name = "bag-uuid", required = true)
-      footer(SUBCOMMAND_SEPARATOR)
+    /** @return URI from arguments; with trailing slash: ready to extend the path for a specific file */
+    def baseUri(): URI = {
+      vault.resolve(s"stores/${ bagStore() }/bags/${ bagUuid() }/")
     }
+
+    descr(description)
+    val bagStore: ScallopOption[StoreName] = opt[StoreName](
+      "bag-store",
+      default = defaultBagStore,
+      short = 's',
+      descr = "Name of the bag store")
+    val bagUuid: ScallopOption[UUID] = trailArg(name = "bag-uuid", required = true)
+    footer(SUBCOMMAND_SEPARATOR)
   }
 
-  val update: SingleBagCommand = createSingleBagCommand("update", "Update a bag in the SOLR index")
-  val delete: SingleBagCommand = createSingleBagCommand("delete", "Delete a bag from the SOLR index")
-  val init: InitCommand = new Subcommand("init") {
+  case class InitCommand(name: String = "init") extends Subcommand(name) {
+
+    /** @return URI from arguments; without trailing slash: ready for a HTTP request that gets the items */
     def uri(): URI = {
       if (bagStore.isSupplied)
-        vault.resolve(s"stores/${ bagStore() }/bags/")
+        vault.resolve(s"stores/${ bagStore() }/bags")
       else
-        vault.resolve(s"stores/")
+        vault.resolve(s"stores")
     }
 
-    descr("Rebuild the SOLR index from scratch for one or all bagstore(s)")
+    descr("Rebuild the SOLR index from scratch for one or all bag store(s)")
     val bagStore: ScallopOption[StoreName] = trailArg(name = "bag-store", required = false)
     footer(SUBCOMMAND_SEPARATOR)
   }
+
+  val update = SingleBagCommand("update", "Update a bag in the SOLR index")
+  val delete = SingleBagCommand("delete", "Delete a bag from the SOLR index")
+  val init = InitCommand()
   val runService = new Subcommand("run-service") {
     descr(
       "Starts EASY Update Solr4files Index as a daemon that services HTTP requests")

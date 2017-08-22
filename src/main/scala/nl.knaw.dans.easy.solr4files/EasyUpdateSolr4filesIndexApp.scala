@@ -31,18 +31,22 @@ class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoClosea
   def initAll(stores: URI): Try[String] = {
     getStores(stores)
       .flatMap(_.map(init).collectResults)
-      .map(_ => "Updated all bags of all stores")
+      .map(_ => s"Updated all bags of all stores ($stores)")
   }
 
-  def init(bagStore: URI): Try[String] = {
-    logger.info(s"Updating bags of $bagStore")
-    Failure(new NotImplementedError(s"init bags not implemented ($bagStore)"))
+  def init(bags: URI): Try[String] = {
+    logger.info(s"Updating bags of one store ($bags)")
+    getBags(bags)
+      .flatMap(_.map(update).collectResults)
+      .map(_ => s"Updated bags of one store ($bags)")
   }
 
-  def update(baseUri: URI): Try[String] = for {
-    filesXML: Elem <- getFilesXml(baseUri)
-    files <- textFiles(filesXML)
-  } yield s"Updated $baseUri"
+  def update(baseUri: URI): Try[String] = {
+    for {
+      filesXML: Elem <- getFilesXml(baseUri)
+      files <- textFiles(filesXML)
+    } yield s"Updated $baseUri"
+  }
 
   def delete(baseUrl: URI): Try[String] =
     Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))

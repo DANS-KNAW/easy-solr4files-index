@@ -25,14 +25,6 @@ ARGUMENTS
 
         --help      Show help message
         --version   Show version of this program
-
-    Subcommand: add - Add a bag to the SOLR index
-      -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
-          --help               Show help message
-    
-     trailing arguments:
-      bag-uuid (required)
-    ---
     
     Subcommand: update - Update a bag in the SOLR index
       -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
