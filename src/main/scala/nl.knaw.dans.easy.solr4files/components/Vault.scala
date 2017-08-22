@@ -41,10 +41,6 @@ trait Vault extends DebugEnhancedLogging {
     Success(Seq[Path]())
   }
 
-  private def vaultFrom(uri: URI): URI = {
-    new URI(uri.getScheme + "://" + uri.getAuthority + "/")
-  }
-
   private def linesFrom(uri: URI): Seq[String] = {
     openManagedStream(uri).acquireAndGet(readLines).asScala
   }
