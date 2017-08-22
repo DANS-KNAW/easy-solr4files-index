@@ -25,7 +25,7 @@ ARGUMENTS
 
         --help      Show help message
         --version   Show version of this program
-    
+
     Subcommand: update - Update a bag in the SOLR index
       -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
           --help               Show help message
@@ -42,7 +42,7 @@ ARGUMENTS
       bag-uuid (required)
     ---
     
-    Subcommand: init - Rebuild the SOLR index from scratch for one or all bagstore(s)
+    Subcommand: init - Rebuild the SOLR index from scratch for one or all bag store(s)
           --help   Show help message
     
      trailing arguments:

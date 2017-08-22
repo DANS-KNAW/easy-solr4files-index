@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URI
-
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
@@ -47,17 +45,9 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |Options:
        |""".stripMargin)
 
-
-  private val vault = new URI(configuration.properties.getString("vault.url", ""))
   private val defaultBagStore = Some(configuration.properties.getString("default.bag-store", "MISSING_BAG_STORE"))
 
   case class SingleBagCommand(name: String, description: String) extends Subcommand(name) {
-
-    /** @return URI from arguments; with trailing slash: ready to extend the path for a specific file */
-    def baseUri(): URI = {
-      vault.resolve(s"stores/${ bagStore() }/bags/${ bagUuid() }/")
-    }
-
     descr(description)
     val bagStore: ScallopOption[StoreName] = opt[StoreName](
       "bag-store",
@@ -68,24 +58,13 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     footer(SUBCOMMAND_SEPARATOR)
   }
 
-  case class InitCommand(name: String = "init") extends Subcommand(name) {
-
-    /** @return URI from arguments; without trailing slash: ready for a HTTP request that gets the items */
-    def uri(): URI = {
-      if (bagStore.isSupplied)
-        vault.resolve(s"stores/${ bagStore() }/bags")
-      else
-        vault.resolve(s"stores")
-    }
-
+  val update = SingleBagCommand("update", "Update a bag in the SOLR index")
+  val delete = SingleBagCommand("delete", "Delete a bag from the SOLR index")
+  val init = new Subcommand("init") {
     descr("Rebuild the SOLR index from scratch for one or all bag store(s)")
     val bagStore: ScallopOption[StoreName] = trailArg(name = "bag-store", required = false)
     footer(SUBCOMMAND_SEPARATOR)
   }
-
-  val update = SingleBagCommand("update", "Update a bag in the SOLR index")
-  val delete = SingleBagCommand("delete", "Delete a bag from the SOLR index")
-  val init = InitCommand()
   val runService = new Subcommand("run-service") {
     descr(
       "Starts EASY Update Solr4files Index as a daemon that services HTTP requests")

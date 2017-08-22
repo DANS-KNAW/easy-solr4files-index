@@ -12,34 +12,25 @@ import scala.xml.{ Elem, XML }
 
 trait Vault extends DebugEnhancedLogging {
 
-  /**
-   * @param storeURI bag store URL (no terminating slash!) returning bags in a store
-   * @return @return URI's with trailing slash: ready to extend the path for a specific file
-   */
-  def getBags(storeURI: URI): Try[Seq[URI]] = Try {
-    val storeName = Paths.get(storeURI.getPath).getParent.getFileName
-    val vaultURI = vaultFrom(storeURI)
-    linesFrom(storeURI).map { line =>
-      val uuid = line.trim
-      vaultURI.resolve(s"stores/$storeName/bags/$uuid/")
-    }
-  }
+  val vaultBaseUri: URI
 
-  /**
-   * @param baseURI bag store URL (no terminating slash!) returning store names
-   * @return @return URI's without trailing slash: ready for a HTTP request that lists the bags
-   */
-  def getStores(baseURI: URI): Try[Seq[URI]] = Try {
-    val vaultURI = vaultFrom(baseURI)
-    linesFrom(baseURI).map { line =>
+  def getStoreNames: Try[Seq[String]] = Try {
+    val uri = vaultBaseUri.resolve("stores")
+    logger.info(s"getting storeNames with $uri")
+    linesFrom(uri).map { line =>
       val trimmed = line.trim.replace("<", "").replace(">", "")
-      val storeName = Paths.get(new URI(trimmed).getPath).getFileName
-      vaultURI.resolve(s"stores/$storeName/bags")
+      Paths.get(new URI(trimmed).getPath).getFileName.toString
     }
   }
 
-  def getFilesXml(baseUri: URI): Try[Elem] = Try {
-    val uri = baseUri.resolve("metadata/files.xml")
+  def getBagIds(storeName: String): Try[Seq[String]] = Try {
+    val storeURI = vaultBaseUri.resolve(s"stores/$storeName/bags")
+    logger.info(s"getting bag ids with $storeURI")
+    linesFrom(storeURI).map { _.trim }
+  }
+
+  def getFilesXml(storeName: String, bagId: String): Try[Elem] = Try {
+    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/")
     logger.info(s"Getting $uri")
     openManagedStream(uri).acquireAndGet(XML.load)
   }

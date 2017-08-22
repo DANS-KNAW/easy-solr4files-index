@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.solr4files.components.Vault
 import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 import scala.xml.Elem
 
 /**
@@ -31,27 +31,29 @@ import scala.xml.Elem
  */
 class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLogging
   with Vault {
+  override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
-  def initAllStores(stores: URI): Try[String] = {
-    getStores(stores)
+  def initAllStores(): Try[String] = {
+    getStoreNames
       .flatMap(_.map(initSingleStore).collectResults)
-      .map(_ => s"Updated all bags of all stores ($stores)")
+      .map(_ => s"Updated all bags of all stores ($vaultBaseUri)")
   }
 
-  def initSingleStore(bags: URI): Try[String] = {
-    logger.info(s"Updating bags of one store ($bags)")
-    getBags(bags)
-      .flatMap(_.map(update).collectResults)
-      .map(_ => s"Updated bags of one store ($bags)")
+  // internally called methods are final, as overriding would implicitly alter behaviour of the caller
+
+  final def initSingleStore(storeName: String): Try[String] = {
+    getBagIds(storeName)
+      .flatMap(_.map(uuid => update(storeName, uuid)).collectResults)
+      .map(_ => s"Updated bags of one $storeName")
   }
 
-  def update(baseUri: URI): Try[String] = {
+  final def update(storeName: String, bagId: String): Try[String] = {
     for {
-      filesXML: Elem <- getFilesXml(baseUri)
+      filesXML: Elem <- getFilesXml(storeName, bagId)
       files <- textFiles(filesXML)
-    } yield s"Updated $baseUri"
+    } yield s"Updated $storeName $bagId"
   }
 
-  def delete(baseUrl: URI): Try[String] =
-    Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))
+  def delete(storeName: String, bagId: String): Try[String] =
+    Failure(new NotImplementedError(s"delete not implemented ($storeName, $bagId)"))
 }

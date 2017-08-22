@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URI
-
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Success, Try }
@@ -24,13 +22,13 @@ import scala.util.{ Success, Try }
 class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoCloseable
   with DebugEnhancedLogging {
 
-  def initAllStores(stores: URI): Try[String] = wiring.initAllStores(stores)
+  def initAllStores(): Try[String] = wiring.initAllStores()
 
-  def initSingleStore(bags: URI): Try[String] = wiring.initSingleStore(bags)
+  def initSingleStore(storeName: String): Try[String] = wiring.initSingleStore(storeName)
 
-  def update(baseUri: URI): Try[String] = wiring.update(baseUri)
+  def update(storeName: String, bagId: String): Try[String] = wiring.update(storeName, bagId)
 
-  def delete(baseUrl: URI): Try[String] = wiring.delete(baseUrl)
+  def delete(storeName: String, bagId: String): Try[String] = wiring.delete(storeName, bagId)
 
   def init(): Try[Unit] = {
     // Do any initialization of the application here. Typical examples are opening
