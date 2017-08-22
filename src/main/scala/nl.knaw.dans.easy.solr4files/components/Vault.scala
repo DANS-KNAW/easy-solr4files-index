@@ -49,7 +49,7 @@ trait Vault extends DebugEnhancedLogging {
   }
 
   private def linesFrom(uri: URI): Seq[String] = {
-    readLines(openStream(uri)).asScala // TODO close
+    readLines(openStream(uri)).asScala
   }
 
   private def openStream(uri: URI) = {
