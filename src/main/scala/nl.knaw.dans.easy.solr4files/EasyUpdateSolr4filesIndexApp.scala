@@ -17,39 +17,20 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URI
 
-import nl.knaw.dans.easy.solr4files.components.Vault
-import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
+import scala.util.{ Success, Try }
 
 class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoCloseable
-  with Vault
   with DebugEnhancedLogging {
 
-  def initAll(stores: URI): Try[String] = {
-    getStores(stores)
-      .flatMap(_.map(init).collectResults)
-      .map(_ => s"Updated all bags of all stores ($stores)")
-  }
+  def initAllStores(stores: URI): Try[String] = wiring.initAllStores(stores)
 
-  def init(bags: URI): Try[String] = {
-    logger.info(s"Updating bags of one store ($bags)")
-    getBags(bags)
-      .flatMap(_.map(update).collectResults)
-      .map(_ => s"Updated bags of one store ($bags)")
-  }
+  def initSingleStore(bags: URI): Try[String] = wiring.initSingleStore(bags)
 
-  def update(baseUri: URI): Try[String] = {
-    for {
-      filesXML: Elem <- getFilesXml(baseUri)
-      files <- textFiles(filesXML)
-    } yield s"Updated $baseUri"
-  }
+  def update(baseUri: URI): Try[String] = wiring.update(baseUri)
 
-  def delete(baseUrl: URI): Try[String] =
-    Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))
+  def delete(baseUrl: URI): Try[String] = wiring.delete(baseUrl)
 
   def init(): Try[Unit] = {
     // Do any initialization of the application here. Typical examples are opening

@@ -15,7 +15,14 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.net.URI
+
+import nl.knaw.dans.easy.solr4files.components.Vault
+import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+
+import scala.util.{ Failure, Success, Try }
+import scala.xml.Elem
 
 /**
  * Initializes and wires together the components of this application.
@@ -23,7 +30,28 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
  * @param configuration the application configuration
  */
 class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLogging
-// Mix in components
-{
-  // Configure components with configuration settings.
+  with Vault {
+
+  def initAllStores(stores: URI): Try[String] = {
+    getStores(stores)
+      .flatMap(_.map(initSingleStore).collectResults)
+      .map(_ => s"Updated all bags of all stores ($stores)")
+  }
+
+  def initSingleStore(bags: URI): Try[String] = {
+    logger.info(s"Updating bags of one store ($bags)")
+    getBags(bags)
+      .flatMap(_.map(update).collectResults)
+      .map(_ => s"Updated bags of one store ($bags)")
+  }
+
+  def update(baseUri: URI): Try[String] = {
+    for {
+      filesXML: Elem <- getFilesXml(baseUri)
+      files <- textFiles(filesXML)
+    } yield s"Updated $baseUri"
+  }
+
+  def delete(baseUrl: URI): Try[String] =
+    Failure(new NotImplementedError(s"delete not implemented ($baseUrl)"))
 }
