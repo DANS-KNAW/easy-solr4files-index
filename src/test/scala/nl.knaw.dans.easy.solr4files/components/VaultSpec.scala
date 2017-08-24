@@ -27,7 +27,7 @@ class VaultSpec extends FlatSpec with Matchers {
     }
   }
 
-  private def createVault (testDir: String) = {
+  private def createVault(testDir: String) = {
     new Vault {
       private val absolutePath: Path = Paths.get("src/test/resources/" + testDir).toAbsolutePath
       override val vaultBaseUri = new URI(s"file:///$absolutePath/")
