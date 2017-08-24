@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URI
 
-import nl.knaw.dans.easy.solr4files.components.Vault
+import nl.knaw.dans.easy.solr4files.components.{ FilesXml, Vault }
 import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -49,8 +49,8 @@ class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLoggi
 
   final def update(storeName: String, bagId: String): Try[String] = {
     for {
-      filesXML: Elem <- getFilesXml(storeName, bagId)
-      files <- textFiles(filesXML)
+      filesXML: Elem <- readFilesXml(storeName, bagId)
+      files <- new FilesXml(filesXML).textFiles()
     } yield s"Updated $storeName $bagId"
   }
 

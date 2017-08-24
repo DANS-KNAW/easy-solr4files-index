@@ -29,16 +29,10 @@ trait Vault extends DebugEnhancedLogging {
     linesFrom(storeURI).map { _.trim }
   }
 
-  def getFilesXml(storeName: String, bagId: String): Try[Elem] = Try {
-    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/")
+  def readFilesXml(storeName: String, bagId: String): Try[Elem] = Try {
+    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/metadata/files.xml")
     logger.info(s"Getting $uri")
     openManagedStream(uri).acquireAndGet(XML.load)
-  }
-
-  def textFiles(filesXML: Elem): Try[Seq[Path]] = {
-    // TODO filter on mime type, move to FilesXml trait
-    logger.info(s"${ (filesXML \ "file").size } files found")
-    Success(Seq[Path]())
   }
 
   private def linesFrom(uri: URI): Seq[String] = {
