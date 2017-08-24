@@ -29,8 +29,10 @@ import scala.xml.Elem
  *
  * @param configuration the application configuration
  */
-class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLogging
-  with Vault {
+class ApplicationWiring(configuration: Configuration)
+  extends DebugEnhancedLogging
+    with Vault { self => this
+
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
   def initAllStores(): Try[String] = {
@@ -47,20 +49,15 @@ class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLoggi
       .map(_ => s"Updated bags of one $storeName")
   }
 
-  final def update(storeName1: String, bagId1: String): Try[String] = {
-    val me = this
-    val bag = new Bag with Vault {
-      override val storeName: String = storeName1
-      override val bagId: String = bagId1
-      override val vaultBaseUri: URI = me.vaultBaseUri
-    }
+  final def update(storeName: String, bagId: String): Try[String] = {
+    val bag = Bag(storeName, bagId, self)
     for {
       filesXML: Elem <- bag.loadFilesXML
       ddmXML: Elem <- bag.loadDDM
       shas <- bag.getFileShas
       files = new Files(filesXML, shas).openTextFiles()
       _ = println(s"Found text files: ${ files.mkString(", ") }")
-    } yield s"Updated $storeName1 $bagId1 (${files.size} files)"
+    } yield s"Updated $storeName $bagId (${ files.size } files)"
   }
 
   def delete(storeName: String, bagId: String): Try[String] =
