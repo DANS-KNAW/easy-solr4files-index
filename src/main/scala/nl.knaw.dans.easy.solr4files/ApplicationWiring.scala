@@ -30,8 +30,8 @@ import scala.xml.Elem
  * @param configuration the application configuration
  */
 class ApplicationWiring(configuration: Configuration)
-  extends DebugEnhancedLogging
-    with Vault { self => this
+  extends DebugEnhancedLogging with Vault {
+  self =>
 
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
