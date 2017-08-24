@@ -19,7 +19,7 @@ class FilesSpec extends FlatSpec with Matchers {
       </file>
     </files>
 
-    new Files(xml, FileToShaMap()).openTextFiles() should
+    new Files(xml, FileToShaMap()).openAccessTextFiles() should
       contain only "data/reisverslag/centaur.srt"
   }
 }

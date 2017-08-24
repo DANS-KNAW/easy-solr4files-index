@@ -29,6 +29,7 @@ case class Bag(storeName: String,
   }
 
   def loadDDM: Try[Elem] = loadXml("metadata/dataset.xml")
+
   def loadFilesXML: Try[Elem] = loadXml("metadata/files.xml")
 
   private def loadXml(file: String): Try[Elem] = Try {

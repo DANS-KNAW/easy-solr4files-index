@@ -55,7 +55,7 @@ class ApplicationWiring(configuration: Configuration)
       filesXML: Elem <- bag.loadFilesXML
       ddmXML: Elem <- bag.loadDDM
       shas <- bag.getFileShas
-      files = new Files(filesXML, shas).openTextFiles()
+      files = new Files(filesXML, shas).openAccessTextFiles()
       _ = println(s"Found text files: ${ files.mkString(", ") }")
     } yield s"Updated $storeName $bagId (${ files.size } files)"
   }

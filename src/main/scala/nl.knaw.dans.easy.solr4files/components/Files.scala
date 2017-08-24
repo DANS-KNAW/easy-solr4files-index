@@ -8,7 +8,7 @@ import scala.xml.{ Elem, Node }
 class Files(xml: Elem, shas: FileToShaMap) extends DebugEnhancedLogging {
   private val fileNodes = xml \\ "file"
 
-  def openTextFiles(): Seq[String] =
+  def openAccessTextFiles(): Seq[String] =
     fileNodes.filter(isOpenText).map(_ \@ "filepath").filter(_.trim.nonEmpty)
 
   private def isOpenText(fileItem: Node): Boolean =
