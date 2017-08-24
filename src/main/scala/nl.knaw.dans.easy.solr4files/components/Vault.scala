@@ -1,14 +1,15 @@
 package nl.knaw.dans.easy.solr4files.components
 
+import java.io.InputStream
 import java.net.URI
 import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.IOUtils.readLines
+import resource.ManagedResource
 
 import scala.collection.JavaConverters._
 import scala.util.Try
-import scala.xml.XML
 
 trait Vault extends DebugEnhancedLogging {
 
@@ -29,17 +30,11 @@ trait Vault extends DebugEnhancedLogging {
     linesFrom(storeURI).map { _.trim }
   }
 
-  def loadXml(storeName: String, bagId: String, file: String) = Try {
-    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file")
-    logger.info(s"Getting $uri")
-    openManagedStream(uri).acquireAndGet(XML.load)
-  }
-
-  private def linesFrom(uri: URI): Seq[String] = {
+  def linesFrom(uri: URI): Seq[String] = {
     openManagedStream(uri).acquireAndGet(readLines).asScala
   }
 
-  private def openManagedStream(uri: URI) = {
+  def openManagedStream(uri: URI): ManagedResource[InputStream] = {
     // TODO friendly error messages, some situations:
     // "IllegalArgumentException: URI is not absolute" if vault is not configured
     // "FileNotFoundException .../MISSING_BAG_STORE/..." if neither default nor explicit store name was specified

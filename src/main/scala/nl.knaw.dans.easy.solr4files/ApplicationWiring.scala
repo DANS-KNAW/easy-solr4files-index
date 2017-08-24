@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URI
 
-import nl.knaw.dans.easy.solr4files.components.{ FilesXml, Vault }
+import nl.knaw.dans.easy.solr4files.components.{ Bag, Files, Vault }
 import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -48,11 +48,14 @@ class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLoggi
   }
 
   final def update(storeName: String, bagId: String): Try[String] = {
+    val bag = Bag(storeName, bagId)(this)
     for {
-      filesXML: Elem <- loadXml(storeName, bagId, "metadata/files.xml")
-      files <- new FilesXml(filesXML).textFiles()
-      _ = logger.debug(s"FilesXml.textFiles returned ${ files.size } files")
-    } yield s"Updated $storeName $bagId"
+      filesXML: Elem <- bag.loadFilesXML
+      ddmXML: Elem <- bag.loadDDM
+      shas <- bag.getFileShas
+      files = new Files(filesXML, shas).openTextFiles()
+      _ = println(s"Found text files: ${ files.mkString(", ") }")
+    } yield s"Updated $storeName $bagId (${files.size} files)"
   }
 
   def delete(storeName: String, bagId: String): Try[String] =

@@ -19,6 +19,10 @@ import scala.util.{ Failure, Success, Try }
 
 package object solr4files {
 
+  type FileToShaMap = Map[String, String]
+
+  def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
+
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib
     def unsafeGetOrThrow: T = {

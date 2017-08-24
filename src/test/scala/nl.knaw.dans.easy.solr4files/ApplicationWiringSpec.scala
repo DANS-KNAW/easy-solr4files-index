@@ -17,7 +17,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
     val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
     val store = "pdbs"
     inside(createWiring().update(store, uuid)) {
-      case Success(feedbackMessage) => feedbackMessage shouldBe s"Updated $store $uuid"
+      case Success(feedbackMessage) => feedbackMessage shouldBe s"Updated $store $uuid (6 files)"
     }
   }
 
