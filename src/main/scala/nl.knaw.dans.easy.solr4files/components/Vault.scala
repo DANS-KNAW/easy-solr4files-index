@@ -1,14 +1,14 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URI
-import java.nio.file.{ Path, Paths }
+import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.IOUtils.readLines
 
 import scala.collection.JavaConverters._
-import scala.util.{ Success, Try }
-import scala.xml.{ Elem, XML }
+import scala.util.Try
+import scala.xml.XML
 
 trait Vault extends DebugEnhancedLogging {
 
@@ -29,8 +29,8 @@ trait Vault extends DebugEnhancedLogging {
     linesFrom(storeURI).map { _.trim }
   }
 
-  def readFilesXml(storeName: String, bagId: String): Try[Elem] = Try {
-    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/metadata/files.xml")
+  def loadXml(storeName: String, bagId: String, file: String) = Try {
+    val uri = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file")
     logger.info(s"Getting $uri")
     openManagedStream(uri).acquireAndGet(XML.load)
   }

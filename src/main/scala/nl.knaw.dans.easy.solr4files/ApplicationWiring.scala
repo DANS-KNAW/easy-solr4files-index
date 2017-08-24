@@ -49,8 +49,9 @@ class ApplicationWiring(configuration: Configuration) extends DebugEnhancedLoggi
 
   final def update(storeName: String, bagId: String): Try[String] = {
     for {
-      filesXML: Elem <- readFilesXml(storeName, bagId)
+      filesXML: Elem <- loadXml(storeName, bagId, "metadata/files.xml")
       files <- new FilesXml(filesXML).textFiles()
+      _ = logger.debug(s"FilesXml.textFiles returned ${ files.size } files")
     } yield s"Updated $storeName $bagId"
   }
 

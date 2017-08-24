@@ -27,8 +27,8 @@ class VaultSpec extends FlatSpec with Matchers {
     }
   }
 
-  "getFilesXml" should "load files.xml" in {
-    createVault("vault").readFilesXml("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") shouldBe a[Success[_]]
+  "loadXml" should "load files.xml" in {
+    createVault("vault").loadXml("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427", "metadata/files.xml") shouldBe a[Success[_]]
   }
 
   private def createVault (testDir: String) = {
