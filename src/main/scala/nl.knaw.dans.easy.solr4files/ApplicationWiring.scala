@@ -15,14 +15,13 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URI
+import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Try }
-import scala.xml.Elem
 
 /**
  * Initializes and wires together the components of this application.
@@ -30,8 +29,10 @@ import scala.xml.Elem
  * @param configuration the application configuration
  */
 class ApplicationWiring(configuration: Configuration)
-  extends DebugEnhancedLogging with VaultIO with Vault {
+  extends DebugEnhancedLogging with VaultIO with Vault with Solr {
 
+  // don't need resolve for solr, URL gives more early errors TODO perhaps not enough early errors
+  override val solrUrl: URL = new URL(configuration.properties.getString("solr.url", ""))
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
   def initAllStores(): Try[String] = {
@@ -40,20 +41,19 @@ class ApplicationWiring(configuration: Configuration)
       .map(_ => s"Updated all bags of all stores ($vaultBaseUri)")
   }
 
-  // internally called methods are final, as overriding would implicitly alter behaviour of the caller
-
-  final def initSingleStore(storeName: String): Try[String] = {
+  def initSingleStore(storeName: String): Try[String] = {
     getBagIds(storeName)
       .flatMap(_.map(uuid => update(storeName, uuid)).collectResults)
-      .map(_ => s"Updated bags of one $storeName")
+      .map(_ => s"Updated bags of one store ($storeName)")
   }
 
-  final def update(storeName: String, bagId: String): Try[String] = {
+  def update(storeName: String, bagId: String): Try[String] = {
     val bag = Bag(storeName, bagId, this)
     for {
-      filesXML: Elem <- bag.loadFilesXML
-      ddmXML: Elem <- bag.loadDDM
+      ddmXML <- bag.loadDDM
+      ddm = new DDM(ddmXML)
       shas <- bag.getFileShas
+      filesXML <- bag.loadFilesXML
       files = new Files(filesXML, shas).openAccessTextFiles()
       _ = println(s"Found text files: ${ files.mkString(", ") }")
     } yield s"Updated $storeName $bagId (${ files.size } files)"
