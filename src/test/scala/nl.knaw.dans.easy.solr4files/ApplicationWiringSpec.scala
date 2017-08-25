@@ -4,10 +4,11 @@ import java.net.URI
 import java.nio.file.{ Path, Paths }
 
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.solr.common.SolrInputDocument
 import org.scalatest.Inside._
 import org.scalatest._
 
-import scala.util.Success
+import scala.util.Failure
 
 class ApplicationWiringSpec extends FlatSpec with Matchers {
 
@@ -16,35 +17,37 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
   private val store = "pdbs"
   private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
 
-  "update" should "succeed" in {
+  "update" should "call the mocked submit method" in {
     val wiring = new ApplicationWiring(configuration) {
       override val vaultBaseUri: URI = createURI("vault")
+
+      override def submit(doc: SolrInputDocument) = Failure(new Exception("mocked submit"))
     }
     inside(wiring.update(store, uuid)) {
-      case Success(feedbackMessage) => feedbackMessage shouldBe s"Updated $store $uuid (6 files)"
+      case Failure(e) => e.getMessage shouldBe s"mocked submit"
     }
   }
 
-  "initSingleStore" should "succeed" in {
+  "initSingleStore" should "call the mocked submit upadte" in {
     val wiring = new ApplicationWiring(configuration) {
       override val vaultBaseUri: URI = createURI("vaultBagIds")
 
-      override def update(store: String, uuid: String) = Success("Done")
+      override def update(store: String, uuid: String) = Failure(new Exception("mocked update"))
     }
 
     inside(wiring.initSingleStore(store)) {
-      case Success(feedbackMessage) => feedbackMessage shouldBe s"Updated bags of one store (pdbs)"
+      case Failure(e) => e.getMessage shouldBe "5 exceptions occurred."
     }
   }
 
-  "initAllStores" should "succeed" in {
+  "initAllStores" should "call the mocked submit initSingleStore" in {
     val wiring = new ApplicationWiring(configuration) {
       override val vaultBaseUri: URI = createURI("vaultStoreNames")
 
-      override def initSingleStore(store: String) = Success("Done")
+      override def initSingleStore(store: String) = Failure(new Exception("mocked initSingleStore"))
     }
     inside(wiring.initAllStores()) {
-      case Success(feedbackMessage) => feedbackMessage shouldBe s"Updated all bags of all stores (${ wiring.vaultBaseUri })"
+      case Failure(e) => e.getMessage shouldBe "4 exceptions occurred."
     }
   }
 

@@ -54,7 +54,9 @@ class ApplicationWiring(configuration: Configuration)
       ddm = new DDM(ddmXML)
       shas <- bag.getFileShas
       filesXML <- bag.loadFilesXML
-      files = new Files(filesXML, shas).openAccessTextFiles()
+      files = new FileItems(filesXML, shas).openAccessTextFiles()
+      solrDoc <- buildDoc(bag, ddm, files.head)
+      _ <- submit(solrDoc)
       _ = println(s"Found text files: ${ files.mkString(", ") }")
     } yield s"Updated $storeName $bagId (${ files.size } files)"
   }

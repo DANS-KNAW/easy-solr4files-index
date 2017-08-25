@@ -13,7 +13,7 @@ case class Bag(storeName: String,
 
   def getDepositor: Try[String] = Try {
     val key = "EASY-User-Account"
-    vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt")
+    vaultIO.linesFrom(storeName, bagId, "bag-info.txt")
       .filter(_.trim.startsWith(key))
       .map(_.trim.replace(key, "").trim.replace(":", "").trim)
       .head // TODO friendly message in case field is absent or repeated

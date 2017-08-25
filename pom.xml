@@ -109,6 +109,11 @@
             <artifactId>solr-solrj</artifactId>
             <version>6.6.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.noggit</groupId>
+            <artifactId>noggit</artifactId>
+            <version>0.8</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
