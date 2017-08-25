@@ -11,7 +11,8 @@ import resource.ManagedResource
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-trait Vault extends DebugEnhancedLogging {
+trait Vault {
+  this: DebugEnhancedLogging =>
 
   val vaultBaseUri: URI
 
