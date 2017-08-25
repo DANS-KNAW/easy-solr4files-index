@@ -4,37 +4,29 @@ import nl.knaw.dans.easy.solr4files.FileToShaMap
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
-import scala.xml.{ Elem, XML }
+import scala.xml.Elem
 
 case class Bag(storeName: String,
                bagId: String,
-               vault: Vault
+               vaultIO: VaultIO
               ) extends DebugEnhancedLogging {
 
   def getDepositor: Try[String] = Try {
-    val uri = vault.vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/manifest-sha1.txt")
     val key = "EASY-User-Account"
-    vault.linesFrom(uri)
+    vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt")
       .filter(_.trim.startsWith(key))
       .map(_.trim.replace(key, "").trim.replace(":", "").trim)
       .head // TODO friendly message in case field is absent or repeated
   }
 
   def getFileShas: Try[FileToShaMap] = Try {
-    val uri = vault.vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/manifest-sha1.txt")
-    vault.linesFrom(uri).map { line: String =>
+    vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt").map { line: String =>
       val xs = line.trim.split("""\s+""")
       (xs(1), xs(0))
     }.toMap
   }
 
-  def loadDDM: Try[Elem] = loadXml("metadata/dataset.xml")
+  def loadDDM: Try[Elem] = vaultIO.loadXml(storeName, bagId, "metadata/dataset.xml")
 
-  def loadFilesXML: Try[Elem] = loadXml("metadata/files.xml")
-
-  private def loadXml(file: String): Try[Elem] = Try {
-    val uri = vault.vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file")
-    logger.info(s"Getting $uri")
-    vault.openManagedStream(uri).acquireAndGet(XML.load)
-  }
+  def loadFilesXML: Try[Elem] = vaultIO.loadXml(storeName, bagId, "metadata/files.xml")
 }

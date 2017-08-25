@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URI
 
-import nl.knaw.dans.easy.solr4files.components.{ Bag, Files, Vault }
+import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.TraversableTryExtensions
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -30,8 +30,7 @@ import scala.xml.Elem
  * @param configuration the application configuration
  */
 class ApplicationWiring(configuration: Configuration)
-  extends DebugEnhancedLogging with Vault {
-  self =>
+  extends DebugEnhancedLogging with VaultIO with Vault {
 
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
@@ -50,7 +49,7 @@ class ApplicationWiring(configuration: Configuration)
   }
 
   final def update(storeName: String, bagId: String): Try[String] = {
-    val bag = Bag(storeName, bagId, self)
+    val bag = Bag(storeName, bagId, this)
     for {
       filesXML: Elem <- bag.loadFilesXML
       ddmXML: Elem <- bag.loadDDM
