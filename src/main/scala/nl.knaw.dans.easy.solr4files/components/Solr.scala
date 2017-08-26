@@ -25,7 +25,7 @@ import scala.util.Try
 
 trait Solr {
   val solrUrl: URL
-  lazy val solr: SolrClient = new HttpSolrClient.Builder("").build()
+  lazy val solr: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
   def buildDoc(bag: Bag, ddm: DDM, item: FileItem): Try[SolrInputDocument] = Try{
     val doc = new SolrInputDocument()
@@ -39,6 +39,7 @@ trait Solr {
     doc.addField("dataset_creator",ddm.creator)
     doc.addField("dataset_audience",ddm.audience)
     doc.addField("dataset_relation",ddm.relation) // TODO multiple relations?
+    // TODO add file content
     doc
   }
 
