@@ -38,8 +38,8 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
     }
     inside(wiring.update(store, uuid)) {
       case Success(msg) => msg shouldBe s"Updated pdbs $uuid (6 files)"
-      case Failure(t: CompositeException) =>
-        println(t)
+      case Failure(t) if t.getCause.isInstanceOf[CompositeException] => t.getCause.printStackTrace()
+      case Failure(t) => t.printStackTrace()
     }
   }
 

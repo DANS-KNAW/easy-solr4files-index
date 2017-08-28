@@ -15,41 +15,55 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.io.File
 import java.net.URL
 
-import org.apache.solr.client.solrj.SolrClient
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
-import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
+import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
+import org.apache.solr.common.util.ContentStreamBase
 
 import scala.util.Try
 
 trait Solr {
+  this: DebugEnhancedLogging =>
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
-    val doc = new SolrInputDocument()
-    doc.addField("id", s"${ bag.bagId }/${ item.path }")
-    doc.addField("content", bag.vaultIO.linesFrom(bag.storeName, bag.bagId, item.path).mkString("\n"))
-    doc.addField("content_type", item.mimeType)
 
-    doc.addField("easy_file_path", item.path)
-    doc.addField("easy_file_mime_type", item.mimeType)
-    doc.addField("easy_dataset_id", bag.bagId)
-    doc.addField("easy_dataset_depositor_id", bag.getDepositor.get) // TODO friendly error message
-    doc.addField("easy_dataset_title", ddm.title) // TODO multiple?
-    doc.addField("easy_dataset_doi", ddm.doi)
-    doc.addField("easy_dataset_creator", ddm.creator) // TODO multiple?
-    doc.addField("easy_dataset_audience", ddm.audience) // TODO multiple?
-    doc.addField("easy_dataset_relation", ddm.relation) // TODO multiple?
-    solrClient.add(doc)
+  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
+
+    val stream = new ContentStreamBase.URLStream(item.url)
+
+    // no values when mocking with the file system
+    if (stream.getContentType == null) stream.setContentType(item.mimeType)
+    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)
+
+    val req = new ContentStreamUpdateRequest("/update/extract")
+    req.setWaitSearcher(false)
+    req.setMethod(METHOD.POST)
+    req.addContentStream(stream)
+    req.setParam("literal.id", s"${ bag.bagId }/${ item.path }")
+    req.setParam("literal.easy_file_path", item.path)
+    req.setParam("literal.easy_file_mime_type", item.mimeType)
+    req.setParam("literal.easy_dataset_id", bag.bagId)
+    req.setParam("literal.easy_dataset_depositor_id", bag.getDepositor.get) // TODO friendly error message
+    req.setParam("literal.easy_dataset_title", ddm.title) // TODO multiple?
+    req.setParam("literal.easy_dataset_doi", ddm.doi)
+    req.setParam("literal.easy_dataset_creator", ddm.creator) // TODO multiple?
+    req.setParam("literal.easy_dataset_audience", ddm.audience) // TODO multiple?
+    req.setParam("literal.easy_dataset_relation", ddm.relation) // TODO multiple?
+
+    val map = solrClient.request(req).asShallowMap()
+    logger.debug(s"${ map.values().toArray.mkString(", ") } ${ bag.bagId } ${ item.path }")
     s"updated ${ item.path } (${ bag.bagId })"
   }
 
   def deleteBag(bagId: String): Try[String] = Try {
-    import org.apache.solr.client.solrj.SolrQuery
     val query = new SolrQuery
-    query.set("q", s"easy_dataset_id:$bagId")
+    query.set("q", s"id:$bagId/*")
     solrClient.deleteByQuery(query.getQuery)
     s"deleted $bagId from the index"
   }
