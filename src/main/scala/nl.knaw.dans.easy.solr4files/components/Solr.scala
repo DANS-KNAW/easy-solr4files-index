@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
+import org.apache.http.HttpStatus
 import org.apache.solr.client.solrj.SolrClient
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.common.SolrInputDocument
@@ -25,27 +26,50 @@ import scala.util.Try
 
 trait Solr {
   val solrUrl: URL
-  lazy val solr: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
+  lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-  def buildDoc(bag: Bag, ddm: DDM, item: FileItem): Try[SolrInputDocument] = Try{
+  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
     val doc = new SolrInputDocument()
-    doc.addField("id",s"${bag.bagId}/${item.path}")
-    doc.addField("file_path",item.path)
-    doc.addField("file_mime_type",item.mimeType)
-    doc.addField("dataset_id",bag.bagId)
-    doc.addField("dataset_depositor_id",bag.getDepositor)
-    doc.addField("dataset_title",ddm.title)
-    doc.addField("dataset_doi",ddm.doi)
-    doc.addField("dataset_creator",ddm.creator)
-    doc.addField("dataset_audience",ddm.audience)
-    doc.addField("dataset_relation",ddm.relation) // TODO multiple relations?
-    // TODO add file content
-    doc
+    doc.addField("id", s"${ bag.bagId }/${ item.path }")
+    doc.addField("content", bag.vaultIO.linesFrom(bag.storeName, bag.bagId, item.path).mkString("\n"))
+    doc.addField("content_type", item.mimeType)
+
+    doc.addField("easy_file_path", item.path)
+    doc.addField("easy_file_mime_type", item.mimeType)
+    doc.addField("easy_dataset_id", bag.bagId)
+    doc.addField("easy_dataset_depositor_id", bag.getDepositor.get) // TODO friendly error message
+    doc.addField("easy_dataset_title", ddm.title) // TODO multiple?
+    doc.addField("easy_dataset_doi", ddm.doi)
+    doc.addField("easy_dataset_creator", ddm.creator) // TODO multiple?
+    doc.addField("easy_dataset_audience", ddm.audience) // TODO multiple?
+    doc.addField("easy_dataset_relation", ddm.relation) // TODO multiple?
+    solrClient.add(doc).getStatus match {
+      case 0 => // no response header
+      case HttpStatus.SC_OK =>
+      case status => throw new Exception(s"Update of bag ${ bag.bagId } returned status $status")
+    }
+    commit("update")
+    s"updated ${ item.path } (${ bag.bagId })"
   }
 
-  def submit(solrDoc: SolrInputDocument): Try[Unit]= Try{
-    val response = solr.add(solrDoc)
-    response.getStatus // TODO error handling
-    solr.commit()
+  def deleteBag(bagId: String): Try[String] = Try {
+    import org.apache.solr.client.solrj.SolrQuery
+    val query = new SolrQuery
+    query.set("dataset_id", bagId)
+    solrClient.deleteByQuery(query.getQuery).getStatus match {
+      case 0 => // no response header
+      case HttpStatus.SC_OK =>
+      case status => throw new Exception(s"Delete of bag $bagId returned status $status")
+    }
+    commit("delete")
+    s"deleted $bagId from the index"
+  }
+
+  private def commit(description: String): Unit = {
+    solrClient.commit().getStatus match {
+      case 0 => // no response header
+      case HttpStatus.SC_OK =>
+      case status => throw new Exception(s"Commit of $description returned status $status")
+    }
   }
 }

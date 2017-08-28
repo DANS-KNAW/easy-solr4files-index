@@ -17,57 +17,65 @@ package nl.knaw.dans.easy.solr4files
 
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.solr4files.components.{ Bag, DDM, FileItem }
 import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
-import org.apache.solr.common.SolrInputDocument
 import org.scalatest.Inside._
 import org.scalatest._
 
-import scala.util.Failure
+import scala.util.{ Failure, Success, Try }
 
 class ApplicationWiringSpec extends FlatSpec with Matchers {
 
   private val store = "pdbs"
   private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
 
-  "update" should "call the overridden submit method" in {
+  "update" should "call the stubbed Solr.submit method" in {
     val wiring = new ApplicationWiring(createConfig("vault")) {
       // comment the next line for a quicker online test cycle than running from the command line
       // TODO try the EmbeddedSolrServer
-      override def submit(doc: SolrInputDocument) = Failure(new Exception("mocked submit"))
+      override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
     }
     inside(wiring.update(store, uuid)) {
-      case Failure(e) => e.getMessage shouldBe s"mocked submit"
+      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (6 files)"
+      case Failure(t: CompositeException) =>
+        println(t)
     }
   }
 
-  "initSingleStore" should "call the overridden upadte method" in {
+  "delete" should "call the stubbed Solr.delete method" in {
+    val wiring = new ApplicationWiring(createConfig("vault")) {
+      override def deleteBag(bagId: String) = Success(s"stubbed Solr.deleteBag $bagId")
+    }
+    inside(wiring.delete(uuid)) {
+      case Success(msg) => msg shouldBe s"stubbed Solr.deleteBag $uuid"
+    }
+  }
+
+  "initSingleStore" should "call the stubbed ApplicationWiring.update method" in {
     val wiring = new ApplicationWiring(createConfig("vaultBagIds")) {
-      override def update(store: String, uuid: String) = Failure(new Exception("mocked update"))
+      override def update(store: String, uuid: String) = Success("stubbed ApplicationWiring.update")
     }
     inside(wiring.initSingleStore(store)) {
-      case Failure(e: CompositeException) =>
-        e.getMessage shouldBe "5 exceptions occurred."
-        e.getCause.getCause.getMessage shouldBe "mocked update"
+      case Success(msg) => msg shouldBe "Updated 5 bags of one store (pdbs)"
     }
   }
 
-  "initAllStores" should "call the overridden initSingleStore method" in {
+  "initAllStores" should "call the stubbed ApplicationWiring.initSingleStore method" in {
+    val path = Paths.get(s"src/test/resources/vaultStoreNames").toAbsolutePath
     val wiring = new ApplicationWiring(createConfig("vaultStoreNames")) {
-      override def initSingleStore(store: String) = Failure(new Exception("mocked initSingleStore"))
+      override def initSingleStore(store: String) = Success("stubbed initSingleStore")
     }
     inside(wiring.initAllStores()) {
-      case Failure(e: CompositeException) =>
-        e.getMessage shouldBe "4 exceptions occurred."
-        e.getCause.getCause.getMessage shouldBe "mocked initSingleStore"
+      case Success(msg) => msg shouldBe s"Updated all bags of 4 stores (file:///$path/)"
     }
   }
 
   private def createConfig(testDir: String) = {
-    val absolutePath = Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString
+    val vaultPath = Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString
     val properties = new PropertiesConfiguration()
-    properties.addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/#/easyfiles")
-    properties.addProperty("vault.url", s"file:///$absolutePath/")
+    properties.addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
+    properties.addProperty("vault.url", s"file:///$vaultPath/")
     new Configuration("", properties)
   }
 }

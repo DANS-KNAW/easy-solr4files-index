@@ -34,9 +34,8 @@ ARGUMENTS
       bag-uuid (required)
     ---
     
-    Subcommand: delete - Delete a bag from the SOLR index
-      -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
-          --help               Show help message
+    Subcommand: delete - Delete all file documents of a bag from the SOLR index
+          --help   Show help message
     
      trailing arguments:
       bag-uuid (required)

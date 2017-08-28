@@ -15,12 +15,14 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.net.URI
+
 import nl.knaw.dans.easy.solr4files.FileToShaMap
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.{ Elem, Node }
 
-class FileItems(xml: Elem, shas: FileToShaMap) extends DebugEnhancedLogging {
+class FileItems(xml: Elem, shas: FileToShaMap, fileBaseURI: URI) extends DebugEnhancedLogging {
   private val fileNodes = xml \ "file"
 
   def openAccessTextFiles(): Seq[FileItem] = {
@@ -34,9 +36,10 @@ class FileItems(xml: Elem, shas: FileToShaMap) extends DebugEnhancedLogging {
   private def toFileItem(fileNode: Node): Option[FileItem] = {
     getPath(fileNode)
       .map(path =>
-        new FileItem(shas(path), fileNode)
-      )
+        new FileItem(shas(path), fileBaseURI.resolve(path).toURL, fileNode)
+      )// TODO catch exception of toURL
   }
+
 
   private def getPath(fileNode: Node): Option[String] = {
     fileNode

@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.net.{ URI, URL }
+
 import nl.knaw.dans.easy.solr4files._
 import org.scalatest._
 
@@ -39,7 +41,7 @@ class FilesSpec extends FlatSpec with Matchers {
       </file>
     </files>
 
-    val xs = new FileItems(xml, fileToShaMap).openAccessTextFiles()
+    val xs = new FileItems(xml, fileToShaMap, new URI("file:///")).openAccessTextFiles()
     xs.size shouldBe 1
     xs.head.checkSum shouldBe "sha2"
     xs.head.path shouldBe "data/reisverslag/centaur.srt"

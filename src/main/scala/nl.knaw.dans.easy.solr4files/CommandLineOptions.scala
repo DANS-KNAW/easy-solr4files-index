@@ -47,8 +47,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
   private val defaultBagStore = Some(configuration.properties.getString("default.bag-store", "MISSING_BAG_STORE"))
 
-  case class SingleBagCommand(name: String, description: String) extends Subcommand(name) {
-    descr(description)
+  val update = new Subcommand("update") {
+    descr("Update a bag in the SOLR index")
     val bagStore: ScallopOption[StoreName] = opt[StoreName](
       "bag-store",
       default = defaultBagStore,
@@ -57,9 +57,11 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val bagUuid: ScallopOption[UUID] = trailArg(name = "bag-uuid", required = true)
     footer(SUBCOMMAND_SEPARATOR)
   }
-
-  val update = SingleBagCommand("update", "Update a bag in the SOLR index")
-  val delete = SingleBagCommand("delete", "Delete a bag from the SOLR index")
+  val delete = new Subcommand("delete") {
+    descr("Delete all file documents of a bag from the SOLR index")
+    val bagUuid: ScallopOption[UUID] = trailArg(name = "bag-uuid", required = true)
+    footer(SUBCOMMAND_SEPARATOR)
+  }
   val init = new Subcommand("init") {
     descr("Rebuild the SOLR index from scratch for one or all bag store(s)")
     val bagStore: ScallopOption[StoreName] = trailArg(name = "bag-store", required = false)
