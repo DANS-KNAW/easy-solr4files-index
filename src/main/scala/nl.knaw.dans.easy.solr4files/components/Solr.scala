@@ -17,7 +17,6 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
-import org.apache.http.HttpStatus
 import org.apache.solr.client.solrj.SolrClient
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.common.SolrInputDocument
@@ -43,33 +42,15 @@ trait Solr {
     doc.addField("easy_dataset_creator", ddm.creator) // TODO multiple?
     doc.addField("easy_dataset_audience", ddm.audience) // TODO multiple?
     doc.addField("easy_dataset_relation", ddm.relation) // TODO multiple?
-    solrClient.add(doc).getStatus match {
-      case 0 => // no response header
-      case HttpStatus.SC_OK =>
-      case status => throw new Exception(s"Update of bag ${ bag.bagId } returned status $status")
-    }
-    commit("update")
+    solrClient.add(doc)
     s"updated ${ item.path } (${ bag.bagId })"
   }
 
   def deleteBag(bagId: String): Try[String] = Try {
     import org.apache.solr.client.solrj.SolrQuery
     val query = new SolrQuery
-    query.set("dataset_id", bagId)
-    solrClient.deleteByQuery(query.getQuery).getStatus match {
-      case 0 => // no response header
-      case HttpStatus.SC_OK =>
-      case status => throw new Exception(s"Delete of bag $bagId returned status $status")
-    }
-    commit("delete")
+    query.set("q", s"easy_dataset_id:$bagId")
+    solrClient.deleteByQuery(query.getQuery)
     s"deleted $bagId from the index"
-  }
-
-  private def commit(description: String): Unit = {
-    solrClient.commit().getStatus match {
-      case 0 => // no response header
-      case HttpStatus.SC_OK =>
-      case status => throw new Exception(s"Commit of $description returned status $status")
-    }
   }
 }

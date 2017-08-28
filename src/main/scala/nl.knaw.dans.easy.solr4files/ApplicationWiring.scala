@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.solr4files
 import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
-import nl.knaw.dans.lib.error.TraversableTryExtensions
+import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
@@ -37,13 +37,13 @@ class ApplicationWiring(configuration: Configuration)
 
   def initAllStores(): Try[String] = {
     getStoreNames
-      .flatMap(_.map(initSingleStore).collectResults)
+      .flatMap(storeNames => updateStores(storeNames))
       .map(results => s"Updated all bags of ${ results.size } stores ($vaultBaseUri)")
   }
 
   def initSingleStore(storeName: String): Try[String] = {
     getBagIds(storeName)
-      .flatMap(_.map(uuid => update(storeName, uuid)).collectResults)
+      .flatMap(bagIds => updateBags(storeName, bagIds))
       .map(results => s"Updated ${ results.size } bags of one store ($storeName)")
   }
 
@@ -56,12 +56,36 @@ class ApplicationWiring(configuration: Configuration)
       shas <- bag.getFileShas
       filesXML <- bag.loadFilesXML
       files = new FileItems(filesXML, shas, fileBaseURI).openAccessTextFiles()
-      _ <- files.map(fileItem => createDoc(bag, ddm, fileItem)).collectResults
-      _ = println(s"Found text files: ${ files.map(_.path).mkString(", ") }")
+      _ <- deleteBag(bag.bagId)
+      _ <- createDocs(bag, ddm, files)
+      _ <- Try(solrClient.commit())
     } yield s"Updated $storeName $bagId (${ files.size } files)"
   }
 
-  def delete(bagId: String): Try[String] = {
+  def delete(bagId: String): Try[String] = Try {
     deleteBag(bagId)
+    solrClient.commit()
+    s"Deleted file documents for bag $bagId"
+  }
+
+  private def updateStores(storeNames: Seq[String]) = {
+    storeNames.map(initSingleStore)
+      .collectResults.recoverWith {
+      case t: CompositeException => throw new Exception(s"Tried to update ${ storeNames.size } stores, ${ t.getMessage() }", t)
+    }
+  }
+
+  private def updateBags(storeName: String, bagIds: Seq[String]) = {
+    bagIds.map(uuid => update(storeName, uuid))
+      .collectResults.recoverWith {
+      case t: CompositeException => throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
+    }
+  }
+
+  private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]) = {
+    files.map(fileItem => createDoc(bag, ddm, fileItem))
+      .collectResults.recoverWith {
+      case t: CompositeException => throw new Exception(s"Tried to update ${ files.size } for bag ${ bag.bagId }, ${ t.getMessage() }", t)
+    }
   }
 }
