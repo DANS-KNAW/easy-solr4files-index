@@ -53,7 +53,7 @@ class ApplicationWiring(configuration: Configuration)
     for {
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
-      shas <- bag.getFileShas
+      shas <- bag.fileShas
       filesXML <- bag.loadFilesXML
       files = new FileItems(filesXML, shas, fileBaseURI).openAccessTextFiles()
       _ <- deleteBag(bag.bagId)

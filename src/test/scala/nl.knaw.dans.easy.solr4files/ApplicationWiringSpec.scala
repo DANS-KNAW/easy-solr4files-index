@@ -34,7 +34,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
     val wiring = new ApplicationWiring(createConfig("vault")) {
       // comment the next line for a quicker online test cycle than running from the command line
       // TODO try the EmbeddedSolrServer
-      override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
+      //override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
     }
     inside(wiring.update(store, uuid)) {
       case Success(msg) => msg shouldBe s"Updated pdbs $uuid (6 files)"
@@ -48,7 +48,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
       override def deleteBag(bagId: String) = Success(s"stubbed Solr.deleteBag $bagId")
     }
     inside(wiring.delete(uuid)) {
-      case Success(msg) => msg shouldBe s"stubbed Solr.deleteBag $uuid"
+      case Success(msg) => msg shouldBe s"Deleted file documents for bag $uuid"
     }
   }
 

@@ -20,6 +20,7 @@ import scala.util.{ Failure, Success, Try }
 package object solr4files {
 
   type FileToShaMap = Map[String, String]
+  type SolrLiterals = Seq[(String, String)]
 
   def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
 

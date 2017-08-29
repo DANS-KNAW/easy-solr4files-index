@@ -29,7 +29,7 @@ class BagSpecs extends FlatSpec with Matchers {
   }
 
   "getFileShas" should "read the shas of the files" in {
-    inside(bag.getFileShas) {
+    inside(bag.fileShas) {
       case Success(shas) => shas.keys.size shouldBe 9
     }
   }

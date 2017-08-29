@@ -17,15 +17,18 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
+import nl.knaw.dans.easy.solr4files.SolrLiterals
+
 import scala.xml.Node
 
 class FileItem(sha: String, fileURL: URL, xml: Node) {
-  def mimeType: String = (xml \ "format").text
 
-  def checkSum: String = sha
-
-  def url: URL = fileURL
-
-  def path: String =
-    xml.attribute("filepath").map(_.text).getOrElse("")
+  val mimeType: String = (xml \ "format").text
+  val url: URL = fileURL
+  val path: String = xml.attribute("filepath").map(_.text).getOrElse("")
+  val solrLiterals: SolrLiterals = Seq(
+    ("file_path", path),
+    ("file_checksum", sha),
+    ("file_mime_type", mimeType)
+  )
 }

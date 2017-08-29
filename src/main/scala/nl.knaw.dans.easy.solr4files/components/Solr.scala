@@ -35,30 +35,25 @@ trait Solr {
 
   def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
 
+    val solrDocId = s"${ bag.bagId }/${ item.path }"
     val stream = new ContentStreamBase.URLStream(item.url)
-
-    // no values when mocking with the file system
-    if (stream.getContentType == null) stream.setContentType(item.mimeType)
-    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)
-
+    if (item.url.getProtocol.toLowerCase == "file") {
+      stream.setContentType(item.mimeType)
+      stream.setSize(new File(item.url.getPath).length)
+    }
     val req = new ContentStreamUpdateRequest("/update/extract")
     req.setWaitSearcher(false)
     req.setMethod(METHOD.POST)
     req.addContentStream(stream)
-    req.setParam("literal.id", s"${ bag.bagId }/${ item.path }")
-    req.setParam("literal.easy_file_path", item.path)
-    req.setParam("literal.easy_file_mime_type", item.mimeType)
-    req.setParam("literal.easy_dataset_id", bag.bagId)
-    req.setParam("literal.easy_dataset_depositor_id", bag.getDepositor.get) // TODO friendly error message
-    req.setParam("literal.easy_dataset_title", ddm.title) // TODO multiple?
-    req.setParam("literal.easy_dataset_doi", ddm.doi)
-    req.setParam("literal.easy_dataset_creator", ddm.creator) // TODO multiple?
-    req.setParam("literal.easy_dataset_audience", ddm.audience) // TODO multiple?
-    req.setParam("literal.easy_dataset_relation", ddm.relation) // TODO multiple?
+    req.setParam("literal.id", solrDocId)
+    (bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals)
+      .foreach { case (key, value) =>
+        req.setParam(s"literal.easy_$key", value)
+      }
 
-    val map = solrClient.request(req).asShallowMap()
-    logger.debug(s"${ map.values().toArray.mkString(", ") } ${ bag.bagId } ${ item.path }")
-    s"updated ${ item.path } (${ bag.bagId })"
+    val namedList = solrClient.request(req)
+    logger.debug(s"${ namedList.asShallowMap().values().toArray.mkString } $solrDocId")
+    s"updated $solrDocId"
   }
 
   def deleteBag(bagId: String): Try[String] = Try {
