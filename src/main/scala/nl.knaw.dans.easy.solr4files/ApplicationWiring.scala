@@ -49,13 +49,11 @@ class ApplicationWiring(configuration: Configuration)
 
   def update(storeName: String, bagId: String): Try[String] = {
     val bag = Bag(storeName, bagId, this)
-    val fileBaseURI = vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/")
     for {
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
-      shas <- bag.fileShas
       filesXML <- bag.loadFilesXML
-      files = new FileItems(filesXML, shas, fileBaseURI).openAccessTextFiles()
+      files = new FileItems(filesXML, bag).openAccessTextFiles()
       _ <- deleteBag(bag.bagId)
       _ <- createDocs(bag, ddm, files)
       _ <- Try(solrClient.commit())
@@ -85,7 +83,7 @@ class ApplicationWiring(configuration: Configuration)
   private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]) = {
     files.map(fileItem => createDoc(bag, ddm, fileItem))
       .collectResults.recoverWith {
-      case t: CompositeException => throw new Exception(s"Tried to update ${ files.size } for bag ${ bag.bagId }, ${ t.getMessage() }", t)
+      case t: CompositeException => throw new Exception(s"Tried to update ${ files.size } files for bag ${ bag.bagId }, ${ t.getMessage() }", t)
     }
   }
 }

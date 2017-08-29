@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.net.URL
+
 import nl.knaw.dans.easy.solr4files.{ FileToShaMap, SolrLiterals }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -23,7 +25,7 @@ import scala.xml.Elem
 
 case class Bag(storeName: String,
                bagId: String,
-               vaultIO: VaultIO
+               private val vaultIO: VaultIO
               ) extends DebugEnhancedLogging {
 
   private def getDepositor: String = Try {
@@ -33,6 +35,10 @@ case class Bag(storeName: String,
       .map(_.trim.replace(key, "").trim.replace(":", "").trim)
       .head
   }.getOrElse("unknown")
+
+  def fileUrl(path: String): URL = {
+    vaultIO.fileURL(storeName, bagId, path)
+  }
 
   val fileShas: Try[FileToShaMap] = Try {
     vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt").map { line: String =>

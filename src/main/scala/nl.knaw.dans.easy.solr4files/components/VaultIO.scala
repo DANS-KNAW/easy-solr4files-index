@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.io.InputStream
-import java.net.URI
+import java.net.{ URI, URL }
 
 import org.apache.commons.io.IOUtils.readLines
 import resource.ManagedResource
@@ -29,7 +29,7 @@ trait VaultIO {
   val vaultBaseUri: URI
 
   def linesFrom(uri: URI): Seq[String] = {
-    openManagedStream(uri).acquireAndGet(readLines).asScala
+    openManagedStream(uri.toURL).acquireAndGet(readLines).asScala
   }
 
   def linesFrom(storeName: String, bagId: String, file: String): Seq[String] = {
@@ -42,14 +42,19 @@ trait VaultIO {
       .acquireAndGet(XML.load)
   }
 
-  private def openManagedStream(storeName: String, bagId: String, file: String): ManagedResource[InputStream] = {
-    openManagedStream(vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file"))
+  // TODO move to Vault?
+  def fileURL(storeName: String, bagId: String, file: String): URL = {
+    vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file").toURL
   }
 
-  def openManagedStream(uri: URI): ManagedResource[InputStream] = {
+  private def openManagedStream(storeName: String, bagId: String, file: String): ManagedResource[InputStream] = {
+    openManagedStream(fileURL(storeName, bagId, file))
+  }
+
+  def openManagedStream(url: URL): ManagedResource[InputStream] = {
     // TODO friendly error messages (using https://github.com/scalaj/scalaj-http ?), some situations:
     // "IllegalArgumentException: URI is not absolute" if vault is not configured
     // "FileNotFoundException .../MISSING_BAG_STORE/..." if neither default nor explicit store name was specified
-    resource.managed(uri.toURL.openStream())
+    resource.managed(url.openStream())
   }
 }

@@ -36,16 +36,17 @@ trait Solr {
   def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
 
     val solrDocId = s"${ bag.bagId }/${ item.path }"
+
     val stream = new ContentStreamBase.URLStream(item.url)
-    if (item.url.getProtocol.toLowerCase == "file") {
-      stream.setContentType(item.mimeType)
-      stream.setSize(new File(item.url.getPath).length)
-    }
+    if (stream.getContentType == null) stream.setContentType(item.mimeType)
+    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)//TODO not returned by vault
+
     val req = new ContentStreamUpdateRequest("/update/extract")
     req.setWaitSearcher(false)
     req.setMethod(METHOD.POST)
     req.addContentStream(stream)
     req.setParam("literal.id", solrDocId)
+    req.setParam("literal.easy_file_size", stream.getSize.toString)
     (bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals)
       .foreach { case (key, value) =>
         req.setParam(s"literal.easy_$key", value)
