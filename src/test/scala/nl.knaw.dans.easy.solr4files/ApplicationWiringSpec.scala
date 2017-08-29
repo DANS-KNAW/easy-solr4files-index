@@ -17,13 +17,12 @@ package nl.knaw.dans.easy.solr4files
 
 import java.nio.file.Paths
 
-import nl.knaw.dans.easy.solr4files.components.{ Bag, DDM, FileItem }
 import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.Inside._
 import org.scalatest._
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 class ApplicationWiringSpec extends FlatSpec with Matchers {
 
@@ -37,7 +36,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
       //override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
     }
     inside(wiring.update(store, uuid)) {
-      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (6 files)"
+      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (7 files)"
       case Failure(t) if t.getCause.isInstanceOf[CompositeException] => t.getCause.printStackTrace()
       case Failure(t) => t.printStackTrace()
     }

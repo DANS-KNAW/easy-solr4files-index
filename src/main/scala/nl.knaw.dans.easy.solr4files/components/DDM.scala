@@ -27,10 +27,12 @@ class DDM(xml: Elem) extends DebugEnhancedLogging {
   val accessRights: String = (xml \ "profile" \ "accessRights").text
   val solrLiterals: SolrLiterals = Seq(
     "dataset_doi" -> (xml \ "dcmiMetadata" \ "identifier").filter(isDOI).text,
-    // TODO multiple occurrences for the next items
+    // TODO multiple occurrences for the next items, see also easy-update-solr-index
     "dataset_title" -> (xml \ "profile" \ "title").text,
     "dataset_creator" -> (xml \ "profile" \ "creator").text,
     "dataset_audience" -> (xml \ "profile" \ "audience").text,
+//    "dataset_subject" -> (xml \ "profile" \ "audience").text,
+//    "dataset_coverage" -> (xml \ "profile" \ "audience").text,
     "dataset_relation" -> (xml \ "dcmiMetadata" \ "relation").text
   )
 }

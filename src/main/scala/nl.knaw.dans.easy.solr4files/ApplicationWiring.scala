@@ -53,7 +53,7 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      files = new FileItems(filesXML, bag).openAccessTextFiles()
+      files = (filesXML \ "file").map(new FileItem(bag, ddm, _)).filter(!_.skip)
       _ <- deleteBag(bag.bagId)
       _ <- createDocs(bag, ddm, files)
       _ <- Try(solrClient.commit())

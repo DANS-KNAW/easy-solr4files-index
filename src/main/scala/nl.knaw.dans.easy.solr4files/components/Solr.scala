@@ -38,8 +38,9 @@ trait Solr {
     val solrDocId = s"${ bag.bagId }/${ item.path }"
 
     val stream = new ContentStreamBase.URLStream(item.url)
+    stream.getStream.close() // side-effect: initializes Size TODO vault doesn't return proper ContentType
     if (stream.getContentType == null) stream.setContentType(item.mimeType)
-    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)//TODO not returned by vault
+    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)
 
     val req = new ContentStreamUpdateRequest("/update/extract")
     req.setWaitSearcher(false)

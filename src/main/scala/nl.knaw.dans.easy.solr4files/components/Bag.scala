@@ -40,11 +40,15 @@ case class Bag(storeName: String,
     vaultIO.fileURL(storeName, bagId, path)
   }
 
-  val fileShas: Try[FileToShaMap] = Try {
+  private val fileShas: Try[FileToShaMap] = Try {
     vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt").map { line: String =>
       val xs = line.trim.split("""\s+""")
       (xs(1), xs(0))
     }.toMap
+  }
+
+  def sha(path: String): String = {
+    fileShas.map(_.getOrElse(path,"")).getOrElse("")
   }
 
   val solrLiterals: SolrLiterals = Seq(
