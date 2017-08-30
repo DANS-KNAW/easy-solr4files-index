@@ -15,14 +15,18 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.net.{URI, URL, URLEncoder}
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.Inside._
 import org.scalatest._
 
-import scala.util.{ Failure, Success }
+import scala.collection.mutable
+import scala.util.Try
+import scala.util.{Failure, Success}
 
 class ApplicationWiringSpec extends FlatSpec with Matchers {
 
@@ -33,7 +37,8 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
     val wiring = new ApplicationWiring(createConfig("vault")) {
       // comment the next line for a quicker online test cycle than running from the command line
       // TODO try the EmbeddedSolrServer
-      //override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
+      override def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Success(s"stubbed Solr.createDoc ${ item.path }")
+      override def deleteBag(bagId: String): Try[String] = Success(s"stubbed Solr.deleteBag $bagId")
     }
     inside(wiring.update(store, uuid)) {
       case Success(msg) => msg shouldBe s"Updated pdbs $uuid (7 files)"
@@ -71,7 +76,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
   }
 
   private def createConfig(testDir: String) = {
-    val vaultPath = Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString
+    val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString, "UTF8")
     val properties = new PropertiesConfiguration()
     properties.addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
     properties.addProperty("vault.url", s"file:///$vaultPath/")
