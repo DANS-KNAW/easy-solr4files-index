@@ -42,8 +42,6 @@ class FileItem(bag: Bag, ddm: DDM, xml: Node) {
     .getOrElse("")
   val url: URL = bag.fileUrl(path)
   val mimeType: String = (xml \ "format").text
-  val isImage: Boolean = mimeType.startsWith("video") || mimeType.startsWith("image")
-  val skip: Boolean = isImage || path.isEmpty
   val solrLiterals: SolrLiterals = Seq(
     ("file_path", path),
     ("file_checksum", bag.sha(path)),

@@ -22,10 +22,11 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
-import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
+import org.apache.solr.client.solrj.{SolrClient, SolrQuery}
 import org.apache.solr.common.util.ContentStreamBase
 
-import scala.util.Try
+import scala.util.{Success, Try}
+import scala.util.control.NonFatal
 
 trait Solr {
   this: DebugEnhancedLogging =>
@@ -34,8 +35,7 @@ trait Solr {
 
 
   def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
-
-    val solrDocId = s"${ bag.bagId }/${ item.path }"
+    val solrDocId = s"${bag.bagId}/${item.path}"
 
     val stream = new ContentStreamBase.URLStream(item.url)
     //stream.getStream.close() // side-effect: initializes Size TODO vault doesn't return proper ContentType
@@ -53,9 +53,18 @@ trait Solr {
         req.setParam(s"literal.easy_$key", value)
       }
 
-    val namedList = solrClient.request(req)
-    logger.debug(s"${ namedList.asShallowMap().values().toArray.mkString } $solrDocId")
-    s"updated $solrDocId"
+    try {
+      val namedList = solrClient.request(req)
+      logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
+    } catch {
+      case NonFatal(e) => // TODO might have to investigate the returned namedList instead or narrow down the exception
+        req.getContentStreams.clear() // retry with just metadata
+        val namedList = solrClient.request(req)
+        logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
+        logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
+        return Success(s"update retried ${s"$solrDocId"}")
+    }
+    s"updated ${s"$solrDocId"}" // TODO feedback message should report a retry, but it drowns in the collectResult
   }
 
   def deleteBag(bagId: String): Try[String] = Try {

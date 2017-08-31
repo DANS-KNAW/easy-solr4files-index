@@ -53,11 +53,11 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      files = (filesXML \ "file").map(new FileItem(bag, ddm, _)).filter(!_.skip)
+      files = (filesXML \ "file").map(new FileItem(bag, ddm, _)).filter(!_.path.isEmpty)
       _ <- deleteBag(bag.bagId)
-      _ <- createDocs(bag, ddm, files)
+      results <- createDocs(bag, ddm, files)
       _ <- commit()
-    } yield s"Updated $storeName $bagId (${ files.size } files)"
+    } yield s"Updated $storeName $bagId (${ files.size } files) " + results.filter(_.contains("retried")).mkString(", ")
   }
 
   def delete(bagId: String): Try[String] = for {

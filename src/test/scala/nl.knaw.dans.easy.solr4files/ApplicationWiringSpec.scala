@@ -18,32 +18,47 @@ package nl.knaw.dans.easy.solr4files
 import java.net.URLEncoder
 import java.nio.file.Paths
 
+import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{SolrClient, SolrRequest, SolrResponse}
 import org.apache.solr.common.util.NamedList
 import org.scalatest.Inside._
 import org.scalatest._
 
-import scala.util.Success
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Success}
 
 class ApplicationWiringSpec extends FlatSpec with Matchers {
 
   private val store = "pdbs"
   private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
+
   private class MockedAndStubbedWiring extends ApplicationWiring(createConfig("vault")){
-    override lazy val solrClient = new SolrClient(){ // TODO replace with mock[SolrClient]
-      override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] = new NamedList[AnyRef]()
+    override lazy val solrClient = new SolrClient(){ // TODO replace with mock[SolrClient] to count the actual calls
       override def deleteByQuery(q: String): UpdateResponse = new UpdateResponse
       override def commit(): UpdateResponse = new UpdateResponse
       override def close(): Unit = ()
+      override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] = {
+        solrRequest.asInstanceOf[ContentStreamUpdateRequest]
+          .getParams.getMap.asScala
+          .toSeq.sortBy { case (k, _) => k }.toMap
+          .foreach { case (_, values) =>
+            if (values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty)
+              throw new Exception("provoke retry without a content stream")
+          }
+        new NamedList[AnyRef]()
+      }
     }
   }
 
   "update" should "call the stubbed solrClient.request" in {
     val result = new MockedAndStubbedWiring().update(store, uuid)
     inside(result) {
-      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (7 files)"
+      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (9 files)" +
+        s" update retried $uuid/data/path/to/a/random/video/hubble.mpg," +
+        s" update retried $uuid/data/reisverslag/centaur.mpg"
     }
   }
 
@@ -56,21 +71,23 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
 
   "initSingleStore" should "call the stubbed ApplicationWiring.update method" in {
     val result = new ApplicationWiring(createConfig("vaultBagIds")) {
-      // vaultBagIds/bags can't be a file and directory so we have to stub
-      override def update(store: String, uuid: String) = Success("stubbed ApplicationWiring.update")
+      // vaultBagIds/bags can't be a file and directory so we need a stub, a failure proofs its called
+      override def update(store: String, uuid: String) = Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
-    inside(result) {
-      case Success(msg) => msg shouldBe "Updated 5 bags of one store (pdbs)"
+    inside(result) { case Failure(e) =>
+      e.getMessage shouldBe "Tried to update 5 bags, 5 exceptions occurred."
+      e.getCause.asInstanceOf[CompositeException].throwables.head.getMessage shouldBe "stubbed ApplicationWiring.update"
     }
   }
 
   "initAllStores" should "call the stubbed ApplicationWiring.initSingleStore method" in {
     val result = new ApplicationWiring(createConfig("vaultStoreNames")) {
-      // vaultStoreNames/stores can't be a file and directory so we have to stub
-      override def initSingleStore(store: String) = Success("stubbed initSingleStore")
+      // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure proofs its called
+      override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
-    inside(result) {
-      case Success(msg) => msg should startWith ("Updated all bags of 4 stores (file:///")
+    inside(result) { case Failure(e) =>
+      e.getMessage shouldBe "Tried to update 4 stores, 4 exceptions occurred."
+      e.getCause.asInstanceOf[CompositeException].throwables.head.getMessage shouldBe "stubbed ApplicationWiring.initSingleStore"
     }
   }
 
