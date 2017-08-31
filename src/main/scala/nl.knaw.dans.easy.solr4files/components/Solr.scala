@@ -64,4 +64,8 @@ trait Solr {
     solrClient.deleteByQuery(query.getQuery)
     s"deleted $bagId from the index"
   }
+
+  def commit (): Try[Unit] = {
+    Try(solrClient.commit())
+  }
 }

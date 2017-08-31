@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.URI
-import java.nio.file.{ Path, Paths }
+import java.net.{URI, URLEncoder}
+import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 case class MockedVault(testDir: String) extends Vault with VaultIO with DebugEnhancedLogging {
-  private val absolutePath: Path = Paths.get(s"src/test/resources/$testDir").toAbsolutePath
+  private val absolutePath = URLEncoder.encode(Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString, "UTF8")
   override val vaultBaseUri = new URI(s"file:///$absolutePath/")
 }

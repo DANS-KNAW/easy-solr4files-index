@@ -56,15 +56,14 @@ class ApplicationWiring(configuration: Configuration)
       files = (filesXML \ "file").map(new FileItem(bag, ddm, _)).filter(!_.skip)
       _ <- deleteBag(bag.bagId)
       _ <- createDocs(bag, ddm, files)
-      _ <- Try(solrClient.commit())
+      _ <- commit()
     } yield s"Updated $storeName $bagId (${ files.size } files)"
   }
 
-  def delete(bagId: String): Try[String] = Try {
-    deleteBag(bagId)
-    solrClient.commit()
-    s"Deleted file documents for bag $bagId"
-  }
+  def delete(bagId: String): Try[String] = for {
+    _ <- deleteBag(bagId)
+    _ <- commit()
+  } yield  s"Deleted file documents for bag $bagId"
 
   private def updateStores(storeNames: Seq[String]) = {
     storeNames.map(initSingleStore)
