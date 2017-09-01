@@ -30,12 +30,14 @@ class DDM(xml: Elem) extends DebugEnhancedLogging {
   val accessRights: String = (xml \ "profile" \ "accessRights").text
   val solrLiterals: SolrLiterals = Seq(
     "dataset_doi" -> (xml \ "dcmiMetadata" \ "identifier").filter(isDOI).text,
-    // TODO multiple occurrences for the next items, see also easy-update-solr-index
-    "dataset_title" -> (xml \ "profile" \ "title").text,
-    "dataset_creator" -> (xml \ "profile" \ "creator").text,
-    "dataset_audience" -> (xml \ "profile" \ "audience").text,
-//    "dataset_subject" -> (xml \ "profile" \ "audience").text,
-//    "dataset_coverage" -> (xml \ "profile" \ "audience").text,
-    "dataset_relation" -> (xml \ "dcmiMetadata" \ "relation").text
-  )
+
+    // TODO add white space in case of one-line input, is the order fixed?
+    "dataset_creator" -> (xml \ "profile" \ "creatorDetails").head.text.trim.replaceAll("\\s+"," ")
+  ) ++
+    (xml \ "profile" \ "title").map(n => ("dataset_title",n.text))++
+    (xml \ "profile" \ "audience").map(n => ("dataset_audience",n.text))++
+    (xml \ "profile" \ "relation").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "subject").map(n => ("dataset_subject",n.text))
+  // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "temporal").text,
+  // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "spatial").text,
 }

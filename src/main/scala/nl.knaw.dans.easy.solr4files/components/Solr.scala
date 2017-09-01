@@ -58,14 +58,14 @@ trait Solr {
       val namedList = solrClient.request(req)
       logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
     } catch {
-      case NonFatal(e) => // TODO might have to investigate the returned namedList instead or narrow down the exception
+      case NonFatal(e) => // TODO might have to investigate the status in the returned namedList instead or narrow down the exception
         req.getContentStreams.clear() // retry with just metadata
         val namedList = solrClient.request(req)
         logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
         logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
         return Success(s"update retried ${s"$solrDocId"}")
     }
-    s"updated ${s"$solrDocId"}" // TODO feedback message should report a retry, but it drowns in the collectResult
+    s"updated ${s"$solrDocId"}"
   }
 
   def deleteBag(bagId: String): Try[String] = Try {
