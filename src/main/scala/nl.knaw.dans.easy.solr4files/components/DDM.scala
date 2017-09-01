@@ -24,6 +24,9 @@ class DDM(xml: Elem) extends DebugEnhancedLogging {
 
   private def isDOI(n: Node) = (n \@ "type") == "id-type:DOI"
 
+  // TODO translate audience to human readable value, perhaps add both values in different fields?
+  // https://github.com/DANS-KNAW/easy-schema/blob/master/src/main/assembly/dist/vocab/2015/narcis-type.xsd
+
   val accessRights: String = (xml \ "profile" \ "accessRights").text
   val solrLiterals: SolrLiterals = Seq(
     "dataset_doi" -> (xml \ "dcmiMetadata" \ "identifier").filter(isDOI).text,

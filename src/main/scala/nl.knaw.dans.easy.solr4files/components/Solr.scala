@@ -50,7 +50,8 @@ trait Solr {
     req.setParam("literal.easy_file_size", stream.getSize.toString)
     (bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals)
       .foreach { case (key, value) =>
-        req.setParam(s"literal.easy_$key", value)
+        if(value.trim.nonEmpty)
+          req.setParam(s"literal.easy_$key", value)
       }
 
     try {
