@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.solr4files.SolrLiterals
 
 import scala.xml.Node
 
-class FileItem(bag: Bag, ddm: DDM, xml: Node) {
+case class FileItem(bag: Bag, ddm: DDM, xml: Node) {
 
   // see ddm.xsd EasyAccessCategoryType
   private def datasetAccessitbleTo = ddm.accessRights match {
@@ -34,9 +34,7 @@ class FileItem(bag: Bag, ddm: DDM, xml: Node) {
     case _                                  => "NONE"
     // @formatter:off
   }
-  private val accessRights: String = Option( xml \ "accessRights")
-    .map(_.text.trim)
-    .getOrElse( datasetAccessitbleTo )
+  private val accessRights: String = ( xml \ "accessRights").map(_.text.trim).mkString
   val path: String = xml.attribute("filepath")
     .map(_.text.trim)
     .getOrElse("")
@@ -46,6 +44,6 @@ class FileItem(bag: Bag, ddm: DDM, xml: Node) {
     ("file_path", path),
     ("file_checksum", bag.sha(path)),
     ("file_mime_type", mimeType),
-    ("file_accessible_to", accessRights)
+    ("file_accessible_to", if(accessRights.isEmpty) datasetAccessitbleTo else accessRights)
   )
 }
