@@ -41,7 +41,7 @@ class DDMSpec  extends FlatSpec with Matchers {
     )
   }
 
-  ignore should "have white space in a one liner creator" in { // TODO
+  ignore should "have white space in a one liner creator" in { // TODO or does the bag-store apply a pretty-print?
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
         xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"

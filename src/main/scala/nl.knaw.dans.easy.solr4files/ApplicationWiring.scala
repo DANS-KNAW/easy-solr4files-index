@@ -53,11 +53,15 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      files = (filesXML \ "file").map(new FileItem(bag, ddm, _)).filter(!_.path.isEmpty)
+      files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(!_.path.isEmpty)
       _ <- deleteBag(bag.bagId)
       results <- createDocs(bag, ddm, files)
       _ <- commit()
-    } yield s"Updated $storeName $bagId (${ files.size } files) " + results.filter(_.contains("retried")).mkString(", ")
+    } yield {
+      val count = results.count(_.startsWith("update retried"))
+      // TODO how to count a mix of success, failure and retries?
+      s"Updated $storeName $bagId (${files.size} files, $count of them without content)"
+    }
   }
 
   def delete(bagId: String): Try[String] = for {
