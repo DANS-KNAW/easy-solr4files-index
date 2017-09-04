@@ -15,29 +15,62 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.net.URL
+
 import nl.knaw.dans.easy.solr4files.SolrLiterals
+import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.xml.{ Elem, Node }
+import scala.xml.{Elem, Node, XML}
 
 class DDM(xml: Elem) extends DebugEnhancedLogging {
 
   private def isDOI(n: Node) = (n \@ "type") == "id-type:DOI"
-
-  // TODO translate audience to human readable value, perhaps add both values in different fields?
-  // https://github.com/DANS-KNAW/easy-schema/blob/master/src/main/assembly/dist/vocab/2015/narcis-type.xsd
 
   val accessRights: String = (xml \ "profile" \ "accessRights").text
   val solrLiterals: SolrLiterals = Seq(
     "dataset_doi" -> (xml \ "dcmiMetadata" \ "identifier").filter(isDOI).text,
 
     // TODO add white space in case of one-line input, is the order fixed?
-    "dataset_creator" -> (xml \ "profile" \ "creatorDetails").head.text.trim.replaceAll("\\s+"," ")
+    "dataset_creator" -> (xml \ "profile" \ "creatorDetails").head.text.replaceAll("\\s+"," ").trim
   ) ++
     (xml \ "profile" \ "title").map(n => ("dataset_title",n.text))++
-    (xml \ "profile" \ "audience").map(n => ("dataset_audience",n.text))++
+    (xml \ "profile" \ "audience").flatMap(n => codeAndText("dataset_audience", n.text, audienceMap))++
+    (xml \ "dcmiMetadata" \ "subject").flatMap(n =>
+      if (isABR(n)) Seq(("dataset_subject", n.text))
+      else codeAndText("dataset_subject", n.text, abrMap)
+    ) ++
     (xml \ "profile" \ "relation").map(n => ("dataset_relation",n.text))
-    (xml \ "dcmiMetadata" \ "subject").map(n => ("dataset_subject",n.text))
   // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "temporal").text,
   // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "spatial").text,
+}
+
+object DDM {
+
+  private def codeAndText(field: String, key: String, keyValues: Map[String, String]): Seq[(String, String)] = {
+    Seq(
+      (field, key),
+      (field, keyValues.getOrElse(key, ""))
+    )
+  }
+
+  private def isABR(n: Node) = {
+    n.attribute("type").map(_.text).mkString.startsWith("abr")
+  }
+
+  val audienceMap: Map[String,String] = loadVocabulary("https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd")
+
+  // TODO currently assuming ABR-complex and ABR-period are disjunct
+  val abrMap: Map[String,String] = loadVocabulary("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
+
+  private def loadVocabulary(xsd: String): Map[String, String] = {
+    (resource.managed(
+      new URL(xsd).openStream() // TODO error handling
+    ).acquireAndGet(XML.load) \\ "enumeration")
+      .map { node =>
+        val key: String = node.attribute("value").map(_.text).getOrElse("")
+        val value = (node \ "annotation" \ "documentation").text
+        key -> value.replaceAll("\\s+", " ").trim
+      }.toMap
+  }
 }
