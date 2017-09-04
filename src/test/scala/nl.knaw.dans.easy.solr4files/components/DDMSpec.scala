@@ -16,14 +16,17 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.io.FileInputStream
+import java.net.{HttpURLConnection, URL}
 
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.util.Try
 import scala.xml.XML
 
 class DDMSpec  extends FlatSpec with Matchers {
 
   "solrLiteral" should "return proper values" in {
+    assume(canConnectToEasySchemas)
     // TODO assume can connect for http://easy.dans.knaw.nl/schemas
     val ddm = new DDM(resource.managed(new FileInputStream(
       "src/test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427/metadata/dataset.xml"
@@ -44,6 +47,7 @@ class DDMSpec  extends FlatSpec with Matchers {
   }
 
   ignore should "have white space in a one liner creator" in { // TODO or does the bag-store apply a pretty-print?
+    assume(canConnectToEasySchemas)
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
         xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
@@ -64,4 +68,16 @@ class DDMSpec  extends FlatSpec with Matchers {
     ).solrLiterals.toMap
     ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
+
+  def canConnectToEasySchemas: Boolean = Try {
+    new URL("http://easy.dans.knaw.nl/schemas").openConnection match {
+      case connection: HttpURLConnection =>
+        connection.setConnectTimeout(1000)
+        connection.setReadTimeout(1000)
+        connection.connect()
+        connection.disconnect()
+        true
+      case _ => throw new Exception
+    }
+  }.isSuccess
 }
