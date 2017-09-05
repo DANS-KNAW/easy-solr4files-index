@@ -31,7 +31,13 @@ class DDMSpec  extends FlatSpec with Matchers {
       "src/test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427/metadata/dataset.xml"
     )).acquireAndGet(XML.load))
     ddm.accessRights shouldBe "OPEN_ACCESS"
-    ddm.solrLiterals.filter{case (_,v) => !v.trim.isEmpty} should contain only(
+    ddm.solrLiterals
+      .map{case (k,v) =>
+        (k, v.replaceAll("\\s+"," ").trim)
+      }
+      .filter{case (_,v) =>
+        !v.isEmpty
+      } should contain only(
       ("dataset_audience", "D30000"),
       ("dataset_audience", "Humanities"),
       ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
@@ -45,7 +51,7 @@ class DDMSpec  extends FlatSpec with Matchers {
     )
   }
 
-  ignore should "have white space in a one liner creator" in { // TODO or does the bag-store apply a pretty-print?
+  ignore should "have white space in a one liner creator" in { // TODO support proper white space one liners?
     assume(canConnectToEasySchemas)
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"

@@ -53,7 +53,7 @@ trait Solr {
       .distinct
       .foreach { case (key, value) =>
         if(value.trim.nonEmpty)
-          req.setParam(s"literal.easy_$key", value)
+          req.setParam(s"literal.easy_$key", value.replaceAll("\\s+"," ").trim)
       }
 
     try {
