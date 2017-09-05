@@ -27,12 +27,11 @@ class DDMSpec  extends FlatSpec with Matchers {
 
   "solrLiteral" should "return proper values" in {
     assume(canConnectToEasySchemas)
-    // TODO assume can connect for http://easy.dans.knaw.nl/schemas
     val ddm = new DDM(resource.managed(new FileInputStream(
       "src/test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427/metadata/dataset.xml"
     )).acquireAndGet(XML.load))
     ddm.accessRights shouldBe "OPEN_ACCESS"
-    ddm.solrLiterals.filter{case (k,v) => !v.trim.isEmpty} should contain only(
+    ddm.solrLiterals.filter{case (_,v) => !v.trim.isEmpty} should contain only(
       ("dataset_audience", "D30000"),
       ("dataset_audience", "Humanities"),
       ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
