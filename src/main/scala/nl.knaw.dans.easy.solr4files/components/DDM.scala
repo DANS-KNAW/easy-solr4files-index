@@ -25,8 +25,6 @@ import scala.xml.{Elem, Node, XML}
 
 class DDM(xml: Elem) extends DebugEnhancedLogging {
 
-  private def isDOI(n: Node) = (n \@ "type") == "id-type:DOI"
-
   val accessRights: String = (xml \ "profile" \ "accessRights").text
   val solrLiterals: SolrLiterals = Seq(
     "dataset_doi" -> (xml \ "dcmiMetadata" \ "identifier").filter(isDOI).text,
@@ -35,38 +33,59 @@ class DDM(xml: Elem) extends DebugEnhancedLogging {
     "dataset_creator" -> (xml \ "profile" \ "creatorDetails").head.text.replaceAll("\\s+"," ").trim
   ) ++
     (xml \ "profile" \ "title").map(n => ("dataset_title",n.text))++
-    (xml \ "profile" \ "audience").flatMap(n => codeAndText("dataset_audience", n.text, audienceMap))++
-    (xml \ "dcmiMetadata" \ "subject").flatMap(n =>
-      if (isABR(n)) Seq(("dataset_subject", n.text))
-      else codeAndText("dataset_subject", n.text, abrMap)
-    ) ++
+    (xml \ "profile" \ "audience").flatMap(n => Seq(
+      ("dataset_audience", n.text), // TODO configure solr with another field name
+      ("dataset_audience", audienceMap.getOrElse(n.text, ""))
+    )) ++
+    (xml \ "dcmiMetadata" \ "subject").flatMap { n =>
+      val abrMap = getAbrMap(n)
+      if (abrMap.isEmpty) Seq(("dataset_subject", n.text))
+      else {
+        Seq(
+          ("dataset_subject", n.text), // TODO configure solr with another field name
+          ("dataset_subject", abrMap.get.getOrElse(n.text, ""))
+        )
+      }
+    } ++
     (xml \ "profile" \ "relation").map(n => ("dataset_relation",n.text))
-  // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "temporal").text,
+    (xml \ "dcmiMetadata" \ "temporal").map(n => ("dataset_coverage",n.text))
   // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "spatial").text,
 }
 
 object DDM {
 
-  private def codeAndText(field: String, key: String, keyValues: Map[String, String]): Seq[(String, String)] = {
-    Seq(
-      (field, key),
-      (field, keyValues.getOrElse(key, ""))
-    )
+  private def isDOI(n: Node) = {
+    (n \@ "type") == "id-type:DOI"
   }
 
-  private def isABR(n: Node) = {
-    n.attribute("type").map(_.text).mkString.startsWith("abr")
+  private val abrPrefix = "abr:ABR"
+  private def getAbrMap(ddmSubjectNode: Node): Option[Map[String,String]] = {
+    ddmSubjectNode.attribute("type")
+      .map(_.text)
+      .filter(_.startsWith(abrPrefix))
+      .flatMap(abrMaps.get)
   }
 
-  val audienceMap: Map[String,String] = loadVocabulary("https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd")
+  private val abrMaps = loadVocabulary("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
+    .map{case (k,v) => // attributes in xsd are complex/periode
+      (s"$abrPrefix$k", v) // attributes in DDM are abr:ABRcomplex/abr:ABRperiode
+    }
 
-  // TODO currently assuming ABR-complex and ABR-period are disjunct
-  val abrMap: Map[String,String] = loadVocabulary("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
+  private val audienceMap = loadVocabulary(
+    "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
+  )("Discipline")
 
-  private def loadVocabulary(xsd: String): Map[String, String] = {
-    (resource.managed(
-      new URL(xsd).openStream() // TODO error handling
-    ).acquireAndGet(XML.load) \\ "enumeration")
+  private def loadVocabulary( xsdURL: String): Map[String, Map[String, String]] = {
+    val xmlDoc = resource.managed(
+      new URL(xsdURL).openStream()
+    ).acquireAndGet(XML.load) // TODO error handling
+    (xmlDoc \ "simpleType")
+      .map(n => (n.attribute("name").head.text, findKeyValuePairs(n)))
+      .toMap
+  }
+
+  private def findKeyValuePairs(table: Node) = {
+    (table \\ "enumeration")
       .map { node =>
         val key: String = node.attribute("value").map(_.text).getOrElse("")
         val value = (node \ "annotation" \ "documentation").text
