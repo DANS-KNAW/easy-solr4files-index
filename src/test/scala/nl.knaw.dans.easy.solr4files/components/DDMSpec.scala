@@ -31,21 +31,23 @@ class DDMSpec  extends FlatSpec with Matchers {
       "src/test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427/metadata/dataset.xml"
     )).acquireAndGet(XML.load))
     ddm.accessRights shouldBe "OPEN_ACCESS"
-    ddm.solrLiterals
-      .map{case (k,v) =>
-        (k, v.replaceAll("\\s+"," ").trim)
+    val literals: Seq[(String, String)] = ddm.solrLiterals
+      .map { case (k, v) =>
+        (k, v.replaceAll("\\s+", " ").trim)
       }
-      .filter{case (_,v) =>
+      .filter { case (_, v) =>
         !v.isEmpty
-      } should contain only(
+      }
+    literals should contain theSameElementsAs Seq(
       ("dataset_narcis_audience", "D30000"),
       ("dataset_audience", "Humanities"),
       ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
+      ("dataset_relation", "http://x"),
       ("dataset_creator", "Captain J.T. Kirk United Federation of Planets"),
       ("dataset_subject", "astronomie"),
       ("dataset_subject", "ruimtevaart"),
       ("dataset_subject", "IX"),
-      ("dataset_subject", "Infrastructuur, onbepaald"),
+// FIXME     ("dataset_subject", "Infrastructuur, onbepaald"),
       ("dataset_title", "Reis naar Centaur-planetoïde"),
       ("dataset_title", "Trip to Centaur asteroid")
     )

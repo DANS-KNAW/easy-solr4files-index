@@ -32,32 +32,33 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
     (xml \ "profile" \ "creator").map(n => ("dataset_creator",n.text))++
     (xml \ "profile" \ "title").map(n => ("dataset_title",n.text))++
     (xml \ "profile" \ "audience").flatMap(n => Seq(
-      ("dataset_narcis_audience", n.text), // TODO configure solr with another field name
+      ("dataset_narcis_audience", n.text), // TODO https://github.com/DANS-KNAW/easy-dtap/pull/131#pullrequestreview-60582037
       ("dataset_audience", audienceMap.getOrElse(n.text, ""))
     )) ++
     (xml \ "dcmiMetadata" \ "subject").flatMap { n =>
-      val abrMap = getAbrMap(n)
+      val abrMap = getAbrMap(n) // FIXME
       if (abrMap.isEmpty) Seq(("dataset_subject", n.text))
       else {
         Seq(
-          ("dataset_subject", n.text), // TODO configure solr with another field name
+          ("dataset_abr_subject", n.text), // TODO https://github.com/DANS-KNAW/easy-dtap/pull/131#pullrequestreview-60582037
           ("dataset_subject", abrMap.get.getOrElse(n.text, ""))
         )
       }
     } ++
-    (xml \ "profile" \ "conformsTo").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isVersionOf").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "hasVersion").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isReplacedBy").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "replaces").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isRequiredBy").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "requires").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isPartOf").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "hasPart").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isReferencedBy").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "references").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "isFormatOf").map(n => ("dataset_relation",n.text))
-    (xml \ "profile" \ "hasFormat").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "relation").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "conformsTo").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isVersionOf").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "hasVersion").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isReplacedBy").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "replaces").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isRequiredBy").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "requires").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isPartOf").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "hasPart").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isReferencedBy").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "references").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "isFormatOf").map(n => ("dataset_relation",n.text))
+    (xml \ "dcmiMetadata" \ "hasFormat").map(n => ("dataset_relation",n.text))
     (xml \ "dcmiMetadata" \ "temporal").map(n => ("dataset_coverage",n.text))
     // TODO spatial https://github.com/DANS-KNAW/easy-schema/blob/acb6506/src/main/assembly/dist/docs/examples/ddm/example2.xml#L280-L320
     // TODO   "dataset_coverage" -> (xml \ "dcmiMetadata" \ "spatial").text,
