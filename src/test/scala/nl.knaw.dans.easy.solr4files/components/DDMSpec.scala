@@ -38,7 +38,7 @@ class DDMSpec  extends FlatSpec with Matchers {
       .filter{case (_,v) =>
         !v.isEmpty
       } should contain only(
-      ("dataset_audience", "D30000"),
+      ("dataset_narcis_audience", "D30000"),
       ("dataset_audience", "Humanities"),
       ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
       ("dataset_creator", "Captain J.T. Kirk United Federation of Planets"),

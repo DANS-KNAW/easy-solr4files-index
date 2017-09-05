@@ -32,7 +32,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
     (xml \ "profile" \ "creator").map(n => ("dataset_creator",n.text))++
     (xml \ "profile" \ "title").map(n => ("dataset_title",n.text))++
     (xml \ "profile" \ "audience").flatMap(n => Seq(
-      ("dataset_audience", n.text), // TODO configure solr with another field name
+      ("dataset_narcis_audience", n.text), // TODO configure solr with another field name
       ("dataset_audience", audienceMap.getOrElse(n.text, ""))
     )) ++
     (xml \ "dcmiMetadata" \ "subject").flatMap { n =>
