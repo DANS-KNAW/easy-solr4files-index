@@ -19,6 +19,7 @@ import scala.util.{ Failure, Success, Try }
 
 package object solr4files {
 
+  type FeedBackMessage = String
   type FileToShaMap = Map[String, String]
   type SolrLiterals = Seq[(String, String)]
 

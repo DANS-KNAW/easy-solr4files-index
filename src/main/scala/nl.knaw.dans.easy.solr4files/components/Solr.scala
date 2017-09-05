@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.solr4files.components
 import java.io.File
 import java.net.URL
 
+import nl.knaw.dans.easy.solr4files.FeedBackMessage
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
@@ -34,7 +35,7 @@ trait Solr {
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
 
-  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[String] = Try {
+  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[FeedBackMessage] = Try {
     val solrDocId = s"${bag.bagId}/${item.path}"
 
     val stream = new ContentStreamBase.URLStream(item.url)
@@ -69,7 +70,7 @@ trait Solr {
     s"updated ${s"$solrDocId"}"
   }
 
-  def deleteBag(bagId: String): Try[String] = Try {
+  def deleteBag(bagId: String): Try[FeedBackMessage] = Try {
     val query = new SolrQuery
     query.set("q", s"id:$bagId/*")
     solrClient.deleteByQuery(query.getQuery)

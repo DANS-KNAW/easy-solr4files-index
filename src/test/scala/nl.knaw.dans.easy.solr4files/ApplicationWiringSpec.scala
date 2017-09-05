@@ -56,7 +56,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
   "update" should "call the stubbed solrClient.request" in {
     val result = new MockedAndStubbedWiring().update(store, uuid)
     inside(result) {
-      case Success(msg) => msg shouldBe s"Updated pdbs $uuid (9 files, 2 of them without content)"
+      case Success(msg) => msg shouldBe s"Bag $uuid: updated 9 files, 2 of them without content"
     }
   }
 

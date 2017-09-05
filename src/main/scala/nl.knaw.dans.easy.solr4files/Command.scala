@@ -24,7 +24,6 @@ import scala.util.control.NonFatal
 import scala.util.{ Failure, Try }
 
 object Command extends App with DebugEnhancedLogging {
-  type FeedBackMessage = String
 
   val configuration = Configuration()
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration) {

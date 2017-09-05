@@ -15,13 +15,13 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.{ URI, URL }
+import java.net.{URI, URL}
 
 import nl.knaw.dans.easy.solr4files.components._
-import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
+import nl.knaw.dans.lib.error.{CompositeException, TraversableTryExtensions}
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
  * Initializes and wires together the components of this application.
@@ -35,19 +35,19 @@ class ApplicationWiring(configuration: Configuration)
   override val solrUrl: URL = new URL(configuration.properties.getString("solr.url", ""))
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
-  def initAllStores(): Try[String] = {
+  def initAllStores(): Try[FeedBackMessage] = {
     getStoreNames
       .flatMap(storeNames => updateStores(storeNames))
       .map(results => s"Updated all bags of ${ results.size } stores ($vaultBaseUri)")
   }
 
-  def initSingleStore(storeName: String): Try[String] = {
+  def initSingleStore(storeName: String): Try[FeedBackMessage] = {
     getBagIds(storeName)
       .flatMap(bagIds => updateBags(storeName, bagIds))
       .map(results => s"Updated ${ results.size } bags of one store ($storeName)")
   }
 
-  def update(storeName: String, bagId: String): Try[String] = {
+  def update(storeName: String, bagId: String): Try[FeedBackMessage] = {
     val bag = Bag(storeName, bagId, this)
     for {
       ddmXML <- bag.loadDDM
@@ -55,38 +55,47 @@ class ApplicationWiring(configuration: Configuration)
       filesXML <- bag.loadFilesXML
       files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(!_.path.isEmpty)
       _ <- deleteBag(bag.bagId)
-      results <- createDocs(bag, ddm, files)
+      feedbackMessage <- createDocs(bag, ddm, files)
       _ <- commit()
-    } yield {
-      val count = results.count(_.startsWith("update retried"))
-      // TODO how to count a mix of success, failure and retries?
-      s"Updated $storeName $bagId (${files.size} files, $count of them without content)"
-    }
+    } yield feedbackMessage
   }
 
-  def delete(bagId: String): Try[String] = for {
+  def delete(bagId: String): Try[FeedBackMessage] = for {
     _ <- deleteBag(bagId)
     _ <- commit()
   } yield  s"Deleted file documents for bag $bagId"
 
-  private def updateStores(storeNames: Seq[String]) = {
-    storeNames.map(initSingleStore)
+  private def updateStores(storeNames: Seq[String]): Try[Seq[FeedBackMessage]] = {
+    storeNames
+      .map(initSingleStore)
       .collectResults.recoverWith {
       case t: CompositeException => throw new Exception(s"Tried to update ${ storeNames.size } stores, ${ t.getMessage() }", t)
     }
   }
 
-  private def updateBags(storeName: String, bagIds: Seq[String]) = {
-    bagIds.map(uuid => update(storeName, uuid))
+  private def updateBags(storeName: String, bagIds: Seq[String]): Try[Seq[FeedBackMessage]] = {
+    bagIds
+      .map(uuid => update(storeName, uuid))
       .collectResults.recoverWith {
       case t: CompositeException => throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
     }
   }
 
-  private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]) = {
-    files.map(fileItem => createDoc(bag, ddm, fileItem))
-      .collectResults.recoverWith {
-      case t: CompositeException => throw new Exception(s"Tried to update ${ files.size } files for bag ${ bag.bagId }, ${ t.getMessage() }", t)
+  private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]): Try[FeedBackMessage] = {
+    val results = files.map(fileItem => createDoc(bag, ddm, fileItem))
+    collectMixedResults(bag.bagId, results)
+  }
+
+  private def collectMixedResults(bagId: String, results: Seq[Try[FeedBackMessage]]) = {
+    val nrOfFailures = results.count(_.isFailure)
+    val successMessages = results.filter(_.isSuccess).map(_.get)
+    val count = successMessages.count(_.startsWith("update retried"))
+    val stats = s"Bag $bagId: updated ${successMessages.size} files, $count of them without content"
+    if (nrOfFailures == 0)
+      Success(stats)
+    else {
+      val t = results.collectResults.failed.get
+      Failure(new Exception(s"$stats, another ${t.getMessage}", t))
     }
   }
 }
