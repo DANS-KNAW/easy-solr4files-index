@@ -34,7 +34,7 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) {
     case _                                  => "NONE"
     // @formatter:off
   }
-  private val accessRights: String = ( xml \ "accessRights").map(_.text.trim).mkString
+  val accessRights: String = ( xml \ "accessRights").map(_.text.trim).mkString
   val path: String = xml.attribute("filepath")
     .map(_.text.trim)
     .getOrElse("")

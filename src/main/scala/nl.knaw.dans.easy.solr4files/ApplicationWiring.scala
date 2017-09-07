@@ -53,7 +53,7 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(!_.path.isEmpty)
+      files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(f => !f.path.isEmpty && f.accessRights!="NONE")
       _ <- deleteBag(bag.bagId)
       feedbackMessage <- createDocs(bag, ddm, files)
       _ <- commit()
