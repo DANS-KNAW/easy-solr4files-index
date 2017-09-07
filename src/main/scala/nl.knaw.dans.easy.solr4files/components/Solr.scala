@@ -19,7 +19,6 @@ import java.io.File
 import java.net.URL
 
 import nl.knaw.dans.easy.solr4files.{ FeedBackMessage, SolrLiterals }
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
@@ -63,9 +62,10 @@ trait Solr {
       .recoverWith { case t =>
         logger.warn(s"First submit attempt of $solrDocId failed with ${ t.getMessage }", t)
         req.getContentStreams.clear() // retry with just metadata
-        executeUpdate(req)
-          .doIfSuccess(_ => logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata"))
-          .map(_ => s"update retried ${ s"$solrDocId" }")
+        executeUpdate(req).map { _ =>
+          logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
+          s"update retried ${ s"$solrDocId" }"
+        }
       }
   }
 
