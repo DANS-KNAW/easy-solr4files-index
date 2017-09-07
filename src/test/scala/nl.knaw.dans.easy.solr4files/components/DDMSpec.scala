@@ -16,14 +16,14 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.io.FileInputStream
-import java.net.{HttpURLConnection, URL}
+import java.net.{ HttpURLConnection, URL }
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{ FlatSpec, Matchers }
 
 import scala.util.Try
 import scala.xml.XML
 
-class DDMSpec  extends FlatSpec with Matchers {
+class DDMSpec extends FlatSpec with Matchers {
 
   "solrLiteral" should "return proper values" in {
     assume(canConnectToEasySchemas)
@@ -32,13 +32,10 @@ class DDMSpec  extends FlatSpec with Matchers {
     )).acquireAndGet(XML.load))
     ddm.accessRights shouldBe "OPEN_ACCESS"
     val literals: Seq[(String, String)] = ddm.solrLiterals
-      .map { case (k, v) =>
-        (k, v.replaceAll("\\s+", " ").trim)
-      }
-      .filter { case (_, v) =>
-        !v.isEmpty
-      }
-    literals should contain theSameElementsAs Seq(
+      .map { case (k, v) => (k, v.replaceAll("\\s+", " ").trim) }
+      .filter { case (_, v) => !v.isEmpty }
+    val expected = Seq(
+      ("dataset_doi", "10.5072/dans-x6g-x2hb"),
       ("dataset_narcis_audience", "D30000"),
       ("dataset_audience", "Humanities"),
       ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
@@ -46,14 +43,17 @@ class DDMSpec  extends FlatSpec with Matchers {
       ("dataset_creator", "Captain J.T. Kirk United Federation of Planets"),
       ("dataset_subject", "astronomie"),
       ("dataset_subject", "ruimtevaart"),
-      ("dataset_subject", "IX"),
-// FIXME     ("dataset_subject", "Infrastructuur, onbepaald"),
+      ("dataset_abr_subject", "IX"),
+      ("dataset_subject", "Infrastructuur, onbepaald"),
       ("dataset_title", "Reis naar Centaur-planetoïde"),
       ("dataset_title", "Trip to Centaur asteroid")
     )
+    // verbose check to figure out which one is wrong in case of problems
+    expected.foreach(literals should contain(_))
+    literals.foreach(expected should contain(_))
   }
 
-  ignore should "have white space in a one liner creator" in { // TODO support proper white space one liners?
+  ignore should "have white space in a one liner creator" in { // TODO support proper white space for one liners?
     assume(canConnectToEasySchemas)
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
