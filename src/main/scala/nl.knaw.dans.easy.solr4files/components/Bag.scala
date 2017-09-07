@@ -48,7 +48,7 @@ case class Bag(storeName: String,
   }
 
   def sha(path: String): String = {
-    fileShas.map(_.getOrElse(path,"")).getOrElse("")
+    fileShas.map(_.getOrElse(path, "")).getOrElse("")
   }
 
   val solrLiterals: SolrLiterals = Seq(

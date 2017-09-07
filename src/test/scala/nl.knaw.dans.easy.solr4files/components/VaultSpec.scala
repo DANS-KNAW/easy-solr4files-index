@@ -15,10 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.URI
-import java.nio.file.{ Path, Paths }
-
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatest.Inside._
 import org.scalatest._
 

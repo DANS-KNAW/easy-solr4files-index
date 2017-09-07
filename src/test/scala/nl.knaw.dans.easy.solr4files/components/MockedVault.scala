@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.{URI, URLEncoder}
+import java.net.{ URI, URLEncoder }
 import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging

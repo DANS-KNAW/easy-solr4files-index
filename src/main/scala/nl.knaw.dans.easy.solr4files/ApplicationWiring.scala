@@ -15,13 +15,13 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.{URI, URL}
+import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
-import nl.knaw.dans.lib.error.{CompositeException, TraversableTryExtensions}
+import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 /**
  * Initializes and wires together the components of this application.
@@ -63,7 +63,7 @@ class ApplicationWiring(configuration: Configuration)
   def delete(bagId: String): Try[FeedBackMessage] = for {
     _ <- deleteBag(bagId)
     _ <- commit()
-  } yield  s"Deleted file documents for bag $bagId"
+  } yield s"Deleted file documents for bag $bagId"
 
   private def updateStores(storeNames: Seq[String]): Try[Seq[FeedBackMessage]] = {
     storeNames
@@ -90,12 +90,12 @@ class ApplicationWiring(configuration: Configuration)
     val nrOfFailures = results.count(_.isFailure)
     val successMessages = results.filter(_.isSuccess).map(_.get)
     val count = successMessages.count(_.startsWith("update retried"))
-    val stats = s"Bag $bagId: updated ${successMessages.size} files, $count of them without content"
+    val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
     if (nrOfFailures == 0)
       Success(stats)
     else {
       val t = results.collectResults.failed.get
-      Failure(new Exception(s"$stats, another ${t.getMessage}", t))
+      Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
     }
   }
 }

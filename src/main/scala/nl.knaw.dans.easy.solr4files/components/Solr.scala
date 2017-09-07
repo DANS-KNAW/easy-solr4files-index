@@ -23,11 +23,11 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
-import org.apache.solr.client.solrj.{SolrClient, SolrQuery}
+import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
 import org.apache.solr.common.util.ContentStreamBase
 
-import scala.util.{Success, Try}
 import scala.util.control.NonFatal
+import scala.util.{ Success, Try }
 
 trait Solr {
   this: DebugEnhancedLogging =>
@@ -36,7 +36,7 @@ trait Solr {
 
 
   def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[FeedBackMessage] = Try {
-    val solrDocId = s"${bag.bagId}/${item.path}"
+    val solrDocId = s"${ bag.bagId }/${ item.path }"
 
     val stream = new ContentStreamBase.URLStream(item.url)
     //stream.getStream.close() // side-effect: initializes Size TODO vault doesn't return proper ContentType
@@ -50,24 +50,22 @@ trait Solr {
     req.setParam("literal.id", solrDocId)
     req.setParam("literal.easy_file_size", stream.getSize.toString)
     (bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals)
-      .distinct
-      .foreach { case (key, value) =>
-        if(value.trim.nonEmpty)
-          req.setParam(s"literal.easy_$key", value.replaceAll("\\s+"," ").trim)
+      .foreach { case (key, value) if value.trim.nonEmpty =>
+        req.setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
       }
 
     try {
       val namedList = solrClient.request(req)
-      logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
+      logger.debug(s"${ namedList.asShallowMap().values().toArray.mkString } $solrDocId")
     } catch {
       case NonFatal(e) => // TODO might have to investigate the status in the returned namedList instead or narrow down the exception
         req.getContentStreams.clear() // retry with just metadata
-        val namedList = solrClient.request(req)
+      val namedList = solrClient.request(req)
         logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
-        logger.debug(s"${namedList.asShallowMap().values().toArray.mkString} $solrDocId")
-        return Success(s"update retried ${s"$solrDocId"}")
+        logger.debug(s"${ namedList.asShallowMap().values().toArray.mkString } $solrDocId")
+        return Success(s"update retried ${ s"$solrDocId" }")
     }
-    s"updated ${s"$solrDocId"}"
+    s"updated ${ s"$solrDocId" }"
   }
 
   def deleteBag(bagId: String): Try[FeedBackMessage] = Try {
@@ -77,7 +75,7 @@ trait Solr {
     s"deleted $bagId from the index"
   }
 
-  def commit (): Try[Unit] = {
+  def commit(): Try[Unit] = {
     Try(solrClient.commit())
   }
 }
