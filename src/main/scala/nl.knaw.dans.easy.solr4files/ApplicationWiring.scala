@@ -91,6 +91,7 @@ class ApplicationWiring(configuration: Configuration)
     val successMessages = results.filter(_.isSuccess).map(_.get)
     val count = successMessages.count(_.startsWith("update retried"))
     val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
+    logger.info(stats)
     if (nrOfFailures == 0)
       Success(stats)
     else {
