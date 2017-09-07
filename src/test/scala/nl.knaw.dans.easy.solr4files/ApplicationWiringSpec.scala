@@ -36,7 +36,9 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
   private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
 
   private class MockedAndStubbedWiring extends ApplicationWiring(createConfig("vault")) {
-    override lazy val solrClient = new SolrClient() { // TODO replace with mock[SolrClient] to count the actual calls
+    override lazy val solrClient = new SolrClient() {
+      // can't use mock because SolrClient has a final method, now we cant count the actual calls
+
       override def deleteByQuery(q: String): UpdateResponse = new UpdateResponse
 
       override def commit(): UpdateResponse = new UpdateResponse
@@ -44,17 +46,26 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
       override def close(): Unit = ()
 
       override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] = {
-        val count = solrRequest.asInstanceOf[ContentStreamUpdateRequest]
-          .getParams.getMap.asScala
-          .toSeq.sortBy { case (k, _) => k }.toMap
-          .count { case (_, values) =>
-            values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty
-          } // non-zero provokes a retry without content
-        val list: NamedList[AnyRef] = new NamedList[AnyRef]()
-        list.add("status",count.toString)
-        list
+        // non-zero provokes a retry without content
+        mockStatus(nrOfImageStreams(solrRequest))
       }
     }
+  }
+
+  private def nrOfImageStreams(solrRequest: SolrRequest[_ <: SolrResponse]) = {
+    solrRequest.asInstanceOf[ContentStreamUpdateRequest]
+      .getParams.getMap.asScala
+      .toSeq.sortBy { case (k, _) => k }
+      .toMap
+      .count { case (_, values) =>
+        values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty
+      }
+  }
+
+  private def mockStatus(status: Int) = {
+    val list: NamedList[AnyRef] = new NamedList[AnyRef]()
+    list.add("status", status.toString)
+    list
   }
 
   "update" should "call the stubbed solrClient.request" in {
