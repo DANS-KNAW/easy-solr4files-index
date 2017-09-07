@@ -24,6 +24,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-update-solr4files-index"
+  version(configuration.version)
   private val SUBCOMMAND_SEPARATOR = "---\n"
   val description: String = s"""Update the EASY SOLR for Files Index with file data from a bag-store"""
   val synopsis: String =
@@ -78,4 +79,5 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   addSubcommand(runService)
 
   footer("")
+  verify()
 }

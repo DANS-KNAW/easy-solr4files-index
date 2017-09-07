@@ -37,13 +37,13 @@ class ApplicationWiring(configuration: Configuration)
 
   def initAllStores(): Try[FeedBackMessage] = {
     getStoreNames
-      .flatMap(storeNames => updateStores(storeNames))
+      .flatMap(updateStores)
       .map(results => s"Updated all bags of ${ results.size } stores ($vaultBaseUri)")
   }
 
   def initSingleStore(storeName: String): Try[FeedBackMessage] = {
     getBagIds(storeName)
-      .flatMap(bagIds => updateBags(storeName, bagIds))
+      .flatMap(updateBags(storeName, _))
       .map(results => s"Updated ${ results.size } bags of one store ($storeName)")
   }
 
@@ -53,7 +53,7 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(f => !f.path.isEmpty && f.accessRights!="NONE")
+      files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(f => !f.path.isEmpty && f.accessRights != "NONE")
       _ <- deleteBag(bag.bagId)
       feedbackMessage <- createDocs(bag, ddm, files)
       _ <- commit()
@@ -68,17 +68,19 @@ class ApplicationWiring(configuration: Configuration)
   private def updateStores(storeNames: Seq[String]): Try[Seq[FeedBackMessage]] = {
     storeNames
       .map(initSingleStore)
-      .collectResults.recoverWith {
-      case t: CompositeException => throw new Exception(s"Tried to update ${ storeNames.size } stores, ${ t.getMessage() }", t)
-    }
+      .collectResults
+      .recoverWith { case t: CompositeException =>
+        throw new Exception(s"Tried to update ${ storeNames.size } stores, ${ t.getMessage() }", t)
+      }
   }
 
   private def updateBags(storeName: String, bagIds: Seq[String]): Try[Seq[FeedBackMessage]] = {
     bagIds
       .map(uuid => update(storeName, uuid))
-      .collectResults.recoverWith {
-      case t: CompositeException => throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
-    }
+      .collectResults
+      .recoverWith { case t: CompositeException =>
+        throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
+      }
   }
 
   private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]): Try[FeedBackMessage] = {
@@ -88,7 +90,7 @@ class ApplicationWiring(configuration: Configuration)
 
   private def collectMixedResults(bagId: String, results: Seq[Try[FeedBackMessage]]) = {
     val nrOfFailures = results.count(_.isFailure)
-    val successMessages = results.filter(_.isSuccess).map(_.get)
+    val successMessages = results.collect{ case Success(msg) => msg }
     val count = successMessages.count(_.startsWith("update retried"))
     val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
     logger.info(stats)
