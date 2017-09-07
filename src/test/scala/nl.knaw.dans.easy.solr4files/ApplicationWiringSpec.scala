@@ -44,14 +44,15 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
       override def close(): Unit = ()
 
       override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] = {
-        solrRequest.asInstanceOf[ContentStreamUpdateRequest]
+        val count = solrRequest.asInstanceOf[ContentStreamUpdateRequest]
           .getParams.getMap.asScala
           .toSeq.sortBy { case (k, _) => k }.toMap
-          .foreach { case (_, values) =>
-            if (values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty)
-              throw new Exception("provoke retry without a content stream")
-          }
-        new NamedList[AnyRef]()
+          .count { case (_, values) =>
+            values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty
+          } // non-zero provokes a retry without content
+        val list: NamedList[AnyRef] = new NamedList[AnyRef]()
+        list.add("status",count.toString)
+        list
       }
     }
   }

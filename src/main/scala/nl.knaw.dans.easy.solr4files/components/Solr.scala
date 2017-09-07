@@ -18,7 +18,8 @@ package nl.knaw.dans.easy.solr4files.components
 import java.io.File
 import java.net.URL
 
-import nl.knaw.dans.easy.solr4files.FeedBackMessage
+import nl.knaw.dans.easy.solr4files.{ FeedBackMessage, SolrLiterals }
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
@@ -26,44 +27,54 @@ import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
 import org.apache.solr.common.util.ContentStreamBase
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 trait Solr {
   this: DebugEnhancedLogging =>
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-
-  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[FeedBackMessage] = Try {
+  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[FeedBackMessage] = {
     val solrDocId = s"${ bag.bagId }/${ item.path }"
+    val solrLiterals = bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals
+    for {
+      stream <- createContentStream(item)
+      request = buildRequest(solrDocId, stream, solrLiterals)
+      feedbackMessage <- submitRequest(solrDocId, request)
+    } yield feedbackMessage
+  }
 
+  private def buildRequest(solrDocId: String, stream: ContentStreamBase, solrLiterals: SolrLiterals) = {
+    new ContentStreamUpdateRequest("/update/extract") {
+      setWaitSearcher(false)
+      setMethod(METHOD.POST)
+      addContentStream(stream)
+      setParam("literal.id", solrDocId)
+      setParam("literal.easy_file_size", stream.getSize.toString)
+      solrLiterals.foreach { case (key, value) if value.trim.nonEmpty =>
+        setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
+      }
+    }
+  }
+
+  private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[String] = {
+    executeUpdate(req)
+      .map(_ => s"updated ${ s"$solrDocId" }")
+      .recoverWith { case t =>
+        logger.warn(s"First submit attempt of $solrDocId failed with ${ t.getMessage }", t)
+        req.getContentStreams.clear() // retry with just metadata
+        executeUpdate(req)
+          .doIfSuccess(_ => logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata"))
+          .map(_ => s"update retried ${ s"$solrDocId" }")
+      }
+  }
+
+  private def createContentStream(item: FileItem): Try[ContentStreamBase] = Try {
     val stream = new ContentStreamBase.URLStream(item.url)
     stream.getStream.close() // side-effect: initializes Size TODO vault doesn't return proper ContentType
     if (stream.getContentType == null) stream.setContentType(item.mimeType)
     if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)
-
-    val req = new ContentStreamUpdateRequest("/update/extract")
-    req.setWaitSearcher(false)
-    req.setMethod(METHOD.POST)
-    req.addContentStream(stream)
-    req.setParam("literal.id", solrDocId)
-    req.setParam("literal.easy_file_size", stream.getSize.toString)
-    (bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals)
-      .foreach { case (key, value) if value.trim.nonEmpty =>
-        req.setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
-      }
-
-    executeUpdate(req) match {
-      case Success(()) => s"updated ${ s"$solrDocId" }"
-      case Failure(_) =>
-        req.getContentStreams.clear() // retry with just metadata
-        executeUpdate(req) match {
-          case Failure(e) => throw e
-          case Success(()) =>
-            logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
-            s"update retried ${ s"$solrDocId" }"
-        }
-    }
+    stream
   }
 
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
