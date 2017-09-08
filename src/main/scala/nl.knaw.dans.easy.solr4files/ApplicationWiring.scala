@@ -82,23 +82,4 @@ class ApplicationWiring(configuration: Configuration)
         throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
       }
   }
-
-  private implicit class mixedResults(left: Seq[Try[Submission]]) {
-    def collectResults(bagId: String): Try[FeedBackMessage] = {
-      val (withContentCount, justMetadataCount, failures) = left.foldRight((0, 0, List.empty[Throwable])) {
-        case (Success(SubmittedWithContent(_)), (withContent, justMetadata, es)) => (withContent + 1, justMetadata, es)
-        case (Success(SubmittedJustMetadata(_)), (withContent, justMetadata, es)) => (withContent, justMetadata + 1, es)
-        case (Failure(e), (withContent, justMetadata, es)) => (withContent, justMetadata, e :: es)
-      }
-      val total = withContentCount + justMetadataCount
-      val stats = s"Bag $bagId: updated $total files, $justMetadataCount of them without content"
-
-      if (total == left.size)
-        Success(stats)
-      else {
-        val t = CompositeException(failures)
-        Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
-      }
-    }
-  }
 }

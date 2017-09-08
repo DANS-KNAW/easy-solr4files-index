@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy
 
+import nl.knaw.dans.lib.error.CompositeException
+
 import scala.util.{ Failure, Success, Try }
 
 package object solr4files {
@@ -28,6 +30,25 @@ package object solr4files {
   abstract sealed class Submission(solrId: String)
   case class SubmittedWithContent(solrId: String) extends Submission(solrId)
   case class SubmittedJustMetadata(solrId: String) extends Submission(solrId)
+
+  implicit class mixedResults(val left: Seq[Try[Submission]]) extends AnyVal {
+    def collectResults(bagId: String): Try[FeedBackMessage] = {
+      val (withContentCount, justMetadataCount, failures) = left.foldRight((0, 0, List.empty[Throwable])) {
+        case (Success(SubmittedWithContent(_)), (withContent, justMetadata, es)) => (withContent + 1, justMetadata, es)
+        case (Success(SubmittedJustMetadata(_)), (withContent, justMetadata, es)) => (withContent, justMetadata + 1, es)
+        case (Failure(e), (withContent, justMetadata, es)) => (withContent, justMetadata, e :: es)
+      }
+      val total = withContentCount + justMetadataCount
+      val stats = s"Bag $bagId: updated $total files, $justMetadataCount of them without content"
+
+      if (total == left.size)
+        Success(stats)
+      else {
+        val t = CompositeException(failures)
+        Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
+      }
+    }
+  }
 
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib
