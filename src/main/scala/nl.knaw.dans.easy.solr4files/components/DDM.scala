@@ -105,10 +105,10 @@ object DDM {
       .toMap
   }
 
-  private def findKeyValuePairs(table: Node) = {
+  private def findKeyValuePairs(table: Node): Map[String, String] = {
     (table \\ "enumeration")
       .map { node =>
-        val key: String = node.attribute("value").map(_.text).getOrElse("")
+        val key = node.attribute("value").map(_.text).getOrElse("")
         val value = (node \ "annotation" \ "documentation").text
         key -> value.replaceAll("\\s+", " ").trim
       }.toMap

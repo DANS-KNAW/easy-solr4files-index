@@ -18,23 +18,42 @@ package nl.knaw.dans.easy.solr4files.components
 import java.net.URL
 
 import nl.knaw.dans.easy.solr4files.SolrLiterals
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.Node
 
-case class FileItem(bag: Bag, ddm: DDM, xml: Node) {
+case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging{
+
+  private val anonymous = "ANONYMOUS"
+  private val known = "KNOWN"
+  private val restrictedGroup = "RESTRICTED_GROUP"
+  private val restrictedRequest = "RESTRICTED_REQUEST"
+  private val none = "NONE"
 
   // see ddm.xsd EasyAccessCategoryType
   private def datasetAccessitbleTo = ddm.accessRights match {
     // @formatter:off
-    case "OPEN_ACCESS"                      => "ANONYMOUS"
-    case "OPEN_ACCESS_FOR_REGISTERED_USERS" => "KNOWN"
-    case "GROUP_ACCESS"                     => "RESTRICTED_GROUP"
-    case "REQUEST_PERMISSION"               => "RESTRICTED_REQUEST"
-    case "NO_ACCESS"                        => "NONE"
-    case _                                  => "NONE"
+    case "OPEN_ACCESS"                      => anonymous
+    case "OPEN_ACCESS_FOR_REGISTERED_USERS" => known
+    case "GROUP_ACCESS"                     => restrictedGroup
+    case "REQUEST_PERMISSION"               => restrictedRequest
+    case "NO_ACCESS"                        => none
+    case _                                  => none
     // @formatter:off
   }
-  val accessRights: String = ( xml \ "accessRights").map(_.text.trim).mkString
+
+  def shouldIndex: Boolean = {
+    val accessibleTos = Set (anonymous, known, restrictedGroup, restrictedRequest)
+    // without a path we can't create a solrID nor fetch the content
+    // multiple or otherwise garbage access rights is treated as "NONE": don't index
+    path.nonEmpty && accessibleTos.contains(accessibleTo)
+  }
+
+  val accessibleTo: String = ( xml \ "accessRights").map(_.text).mkString match {
+    case s if s.isEmpty => datasetAccessitbleTo
+    case s => s
+  }
+
   val path: String = xml.attribute("filepath")
     .map(_.text.trim)
     .getOrElse("")
@@ -44,6 +63,6 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) {
     ("file_path", path),
     ("file_checksum", bag.sha(path)),
     ("file_mime_type", mimeType),
-    ("file_accessible_to", if(accessRights.isEmpty) datasetAccessitbleTo else accessRights)
+    ("file_accessible_to", accessibleTo)
   )
 }
