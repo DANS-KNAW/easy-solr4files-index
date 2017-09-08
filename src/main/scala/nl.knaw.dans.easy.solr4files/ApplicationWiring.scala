@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Try
 
 /**
  * Initializes and wires together the components of this application.
@@ -55,7 +55,7 @@ class ApplicationWiring(configuration: Configuration)
       filesXML <- bag.loadFilesXML
       files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(_.shouldIndex)
       _ <- deleteBag(bag.bagId)
-      feedbackMessage <- files.map(createDoc(bag, ddm, _)).collectResults(bag.bagId)
+      feedbackMessage <- files.map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path))).collectResults(bag.bagId)
       _ <- commit()
     } yield feedbackMessage
   }

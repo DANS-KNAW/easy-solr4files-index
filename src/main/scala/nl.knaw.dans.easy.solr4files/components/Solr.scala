@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.io.File
 import java.net.URL
 
 import nl.knaw.dans.easy.solr4files._
@@ -26,35 +25,30 @@ import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
 import org.apache.solr.common.util.ContentStreamBase
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 trait Solr extends DebugEnhancedLogging {
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[Submission] = {
-    val solrDocId = s"${ bag.bagId }/${ item.path }"
-    val solrLiterals = bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals
-    for {
-      stream <- createContentStream(item)
-      request = buildRequest(solrDocId, stream, solrLiterals)
-      feedbackMessage <- submitRequest(solrDocId, request)
-    } yield feedbackMessage
-  }
-
-  private def buildRequest(solrDocId: String, stream: ContentStreamBase, solrLiterals: SolrLiterals) = {
-    new ContentStreamUpdateRequest("/update/extract") {
+  def createDoc(item: FileItem, size: Long): Try[Submission] = {
+    val solrDocId = s"${ item.bag.bagId }/${ item.path }"
+    val request = new ContentStreamUpdateRequest("/update/extract") {
       setWaitSearcher(false)
       setMethod(METHOD.POST)
-      addContentStream(stream)
+      addContentStream(new ContentStreamBase.URLStream(item.bag.fileUrl(item.path)))
       setParam("literal.id", solrDocId)
-      setParam("literal.easy_file_size", stream.getSize.toString)
-      for ((key, value) <- solrLiterals) {
+      for ((key, value) <-
+           ("file_size", size.toString) +:
+             (item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals)
+      ) {
         if (value.trim.nonEmpty)
           setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
       }
     }
+    submitRequest(solrDocId, request)
   }
+
 
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[Submission] = {
     executeUpdate(req)
@@ -69,21 +63,13 @@ trait Solr extends DebugEnhancedLogging {
       }
   }
 
-  private def createContentStream(item: FileItem): Try[ContentStreamBase] = Try {
-    val stream = new ContentStreamBase.URLStream(item.url)
-    stream.getStream.close() // side-effect: initializes Size TODO vault doesn't return proper ContentType
-    if (stream.getContentType == null) stream.setContentType(item.mimeType)
-    if (stream.getSize == null) stream.setSize(new File(item.url.getPath).length)
-    stream
-  }
-
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
-    Try {
-      val namedList = solrClient.request(req)
-      val status = namedList.get("status")
-      if (status != null && status != "0")
-        throw new Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }")
-    }
+    for {
+      namedList <- Try(solrClient.request(req))
+      status = namedList.get("status")
+      _ <- if (status == null || status == "0") Success(())
+           else Failure(new Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }"))
+    } yield ()
   }
 
   def deleteBag(bagId: String): Try[FeedBackMessage] = Try {

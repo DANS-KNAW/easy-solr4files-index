@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.URL
-
 import nl.knaw.dans.easy.solr4files.SolrLiterals
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -42,20 +40,18 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
     // @formatter:off
   }
 
-  def shouldIndex: Boolean = {
+  val path: String = xml.attribute("filepath").map(_.text).getOrElse("")
+  val accessibleTo: String = ( xml \ "accessRights").map(_.text).mkString match {
+    case s if s.isEmpty => datasetAccessitbleTo
+    case s => s
+  }
+  val shouldIndex: Boolean = {
     val accessibleTos = Set (anonymous, known, restrictedGroup, restrictedRequest)
     // without a path we can't create a solrID nor fetch the content
     // multiple or otherwise garbage access rights is treated as "NONE": don't index
     path.nonEmpty && accessibleTos.contains(accessibleTo)
   }
 
-  val accessibleTo: String = ( xml \ "accessRights").map(_.text).mkString match {
-    case s if s.isEmpty => datasetAccessitbleTo
-    case s => s
-  }
-
-  val path: String = xml.attribute("filepath").map(_.text).getOrElse("")
-  val url: URL = bag.fileUrl(path)
   val mimeType: String = (xml \ "format").text
   val solrLiterals: SolrLiterals = Seq(
     ("file_path", path),

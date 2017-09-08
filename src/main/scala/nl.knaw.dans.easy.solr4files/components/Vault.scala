@@ -15,14 +15,16 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.io.File
 import java.net.URI
 import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{ Success, Try }
+import scalaj.http.Http
 
-trait Vault extends DebugEnhancedLogging{
+trait Vault extends DebugEnhancedLogging {
   this: VaultIO =>
 
   def getStoreNames: Try[Seq[String]] = Try {
@@ -39,5 +41,22 @@ trait Vault extends DebugEnhancedLogging{
     val storeURI = vaultBaseUri.resolve(s"stores/$storeName/bags")
     logger.info(s"getting bag ids with $storeURI")
     linesFrom(storeURI).map { _.trim }
+  }
+
+  def getSize(storeName: String, bagId: String, path: String): Long = {
+    val url = fileURL(storeName, bagId, path)
+
+    if (url.getProtocol.toLowerCase == "file")
+      new File(url.getPath).length
+    else Http(url.toString).method("HEAD").asString match {
+      case response if !response.isSuccess =>
+        logger.warn(s"getSize($url) ${ response.statusLine }, details: ${ response.body }")
+        -1L
+      case response =>
+        Try(response.headers("content-length").toLong).recoverWith {
+          case e => logger.warn(s"getSize($url) content-length: ${ e.getMessage }", e)
+            Success(-1L)
+        }.getOrElse(-1L)
+    }
   }
 }

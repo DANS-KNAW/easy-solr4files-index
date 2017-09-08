@@ -38,7 +38,6 @@ class FileItemSpec extends FlatSpec with Matchers {
     val fi = FileItem(bag, ddm("OPEN_ACCESS"), xml)
     fi.mimeType shouldBe "video/mpeg"
     fi.path shouldBe "data/reisverslag/centaur.mpg"
-    fi.url.toString should endWith(fi.path)
 
     val solrLiterals = fi.solrLiterals.toMap
     solrLiterals("file_path") shouldBe fi.path
