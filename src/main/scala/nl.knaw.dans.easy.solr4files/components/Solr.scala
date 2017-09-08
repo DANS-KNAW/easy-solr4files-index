@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.solr4files.components
 import java.io.File
 import java.net.URL
 
-import nl.knaw.dans.easy.solr4files.{ FeedBackMessage, SolrLiterals }
+import nl.knaw.dans.easy.solr4files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
@@ -33,7 +33,7 @@ trait Solr {
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[FeedBackMessage] = {
+  def createDoc(bag: Bag, ddm: DDM, item: FileItem): Try[Submission] = {
     val solrDocId = s"${ bag.bagId }/${ item.path }"
     val solrLiterals = bag.solrLiterals ++ ddm.solrLiterals ++ item.solrLiterals
     for {
@@ -56,15 +56,15 @@ trait Solr {
     }
   }
 
-  private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[String] = {
+  private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[Submission] = {
     executeUpdate(req)
-      .map(_ => s"updated ${ s"$solrDocId" }")
+      .map(_ => SubmittedWithContent(solrDocId))
       .recoverWith { case t =>
         logger.warn(s"First submit attempt of $solrDocId failed with ${ t.getMessage }", t)
         req.getContentStreams.clear() // retry with just metadata
         executeUpdate(req).map { _ =>
           logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
-          s"update retried ${ s"$solrDocId" }"
+          SubmittedJustMetadata(solrDocId)
         }
       }
   }

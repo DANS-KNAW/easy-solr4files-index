@@ -55,7 +55,7 @@ class ApplicationWiring(configuration: Configuration)
       filesXML <- bag.loadFilesXML
       files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(_.shouldIndex)
       _ <- deleteBag(bag.bagId)
-      feedbackMessage <- files.map(createDoc(bag, ddm, _)).collectMixedCreateDocResults(bag.bagId)
+      feedbackMessage <- files.map(createDoc(bag, ddm, _)).collectResults(bag.bagId)
       _ <- commit()
     } yield feedbackMessage
   }
@@ -83,16 +83,20 @@ class ApplicationWiring(configuration: Configuration)
       }
   }
 
-  private implicit class mixedResults(left: Seq[Try[FeedBackMessage]]) {
-    def collectMixedCreateDocResults(bagId: String): Try[FeedBackMessage] = {
-      val successMessages = left.collect { case Success(msg) => msg }
-      val count = successMessages.count(_.startsWith("update retried"))
-      val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
-      logger.info(stats)
-      if (successMessages.size == left.size)
+  private implicit class mixedResults(left: Seq[Try[Submission]]) {
+    def collectResults(bagId: String): Try[FeedBackMessage] = {
+      val (withContentCount, justMetadataCount, failures) = left.foldRight((0, 0, List.empty[Throwable])) {
+        case (Success(SubmittedWithContent(_)), (withContent, justMetadata, es)) => (withContent + 1, justMetadata, es)
+        case (Success(SubmittedJustMetadata(_)), (withContent, justMetadata, es)) => (withContent, justMetadata + 1, es)
+        case (Failure(e), (withContent, justMetadata, es)) => (withContent, justMetadata, e :: es)
+      }
+      val total = withContentCount + justMetadataCount
+      val stats = s"Bag $bagId: updated $total files, $justMetadataCount of them without content"
+
+      if (total == left.size)
         Success(stats)
       else {
-        val t = left.collectResults.failed.get
+        val t = CompositeException(failures)
         Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
       }
     }

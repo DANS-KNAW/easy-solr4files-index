@@ -25,6 +25,10 @@ package object solr4files {
 
   def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
 
+  abstract sealed class Submission(solrId: String)
+  case class SubmittedWithContent(solrId: String) extends Submission(solrId)
+  case class SubmittedJustMetadata(solrId: String) extends Submission(solrId)
+
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib
     def unsafeGetOrThrow: T = {
