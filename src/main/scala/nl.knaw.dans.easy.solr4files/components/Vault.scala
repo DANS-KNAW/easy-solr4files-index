@@ -22,13 +22,14 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
 
-trait Vault {
-  this: VaultIO with DebugEnhancedLogging =>
+trait Vault extends DebugEnhancedLogging{
+  this: VaultIO =>
 
   def getStoreNames: Try[Seq[String]] = Try {
     val uri = vaultBaseUri.resolve("stores")
     logger.info(s"getting storeNames with $uri")
     linesFrom(uri).map { line =>
+      // the Vault returns localhost, we need the configured host
       val trimmed = line.trim.replace("<", "").replace(">", "")
       Paths.get(new URI(trimmed).getPath).getFileName.toString
     }

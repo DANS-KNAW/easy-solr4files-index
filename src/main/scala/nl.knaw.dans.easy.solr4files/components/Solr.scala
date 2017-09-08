@@ -28,8 +28,7 @@ import org.apache.solr.common.util.ContentStreamBase
 
 import scala.util.Try
 
-trait Solr {
-  this: DebugEnhancedLogging =>
+trait Solr extends DebugEnhancedLogging {
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
@@ -50,8 +49,9 @@ trait Solr {
       addContentStream(stream)
       setParam("literal.id", solrDocId)
       setParam("literal.easy_file_size", stream.getSize.toString)
-      solrLiterals.foreach { case (key, value) if value.trim.nonEmpty =>
-        setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
+      for ((key, value) <- solrLiterals) {
+        if (value.trim.nonEmpty)
+          setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
       }
     }
   }
@@ -87,9 +87,9 @@ trait Solr {
   }
 
   def deleteBag(bagId: String): Try[FeedBackMessage] = Try {
-    val query = new SolrQuery
-    query.set("q", s"id:$bagId/*")
-    solrClient.deleteByQuery(query.getQuery)
+    solrClient.deleteByQuery(new SolrQuery {
+      set("q", s"id:$bagId/*")
+    }.getQuery)
     s"deleted $bagId from the index"
   }
 

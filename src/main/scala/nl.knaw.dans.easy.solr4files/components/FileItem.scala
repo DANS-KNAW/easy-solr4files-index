@@ -22,7 +22,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.Node
 
-case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging{
+case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging {
 
   private val anonymous = "ANONYMOUS"
   private val known = "KNOWN"
@@ -54,9 +54,7 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging{
     case s => s
   }
 
-  val path: String = xml.attribute("filepath")
-    .map(_.text.trim)
-    .getOrElse("")
+  val path: String = xml.attribute("filepath").map(_.text).getOrElse("")
   val url: URL = bag.fileUrl(path)
   val mimeType: String = (xml \ "format").text
   val solrLiterals: SolrLiterals = Seq(

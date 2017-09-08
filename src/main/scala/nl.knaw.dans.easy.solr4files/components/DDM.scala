@@ -89,7 +89,7 @@ object DDM {
 
   private val abrMaps = loadVocabularies("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
     .map { case (k, v) => // attributes in xsd are complex/periode
-      (s"$abrPrefix$k", v) // attributes in DDM are abr:ABRcomplex/abr:ABRperiode
+      (s"$abrPrefix$k", v) // we want to search with DDM attributes which are abr:ABRcomplex/abr:ABRperiode
     }
 
   private val audienceMap = loadVocabularies(

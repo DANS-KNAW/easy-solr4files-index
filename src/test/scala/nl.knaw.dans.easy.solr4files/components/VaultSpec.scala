@@ -24,7 +24,7 @@ class VaultSpec extends FlatSpec with Matchers {
 
   "getStoreNames" should "return names" in {
     inside(MockedVault("vaultStoreNames").getStoreNames) {
-      case Success(names) => names should contain only("easy", "pdbs", "mendeley", "dryad")
+      case Success(names) => names should contain only("foo", "bar", "rabarbera", "barbapapa")
     }
   }
 

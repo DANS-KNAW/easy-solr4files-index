@@ -81,8 +81,5 @@
         </dcx-gml:spatial>
         <dcterms:temporal xsi:type="abr:ABRperiode">PALEOLB</dcterms:temporal>
         <dcterms:temporal>random text</dcterms:temporal>
-
-
-
     </ddm:dcmiMetadata>
 </ddm:DDM>
