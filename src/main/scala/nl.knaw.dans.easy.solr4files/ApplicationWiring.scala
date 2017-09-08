@@ -55,7 +55,7 @@ class ApplicationWiring(configuration: Configuration)
       filesXML <- bag.loadFilesXML
       files = (filesXML \ "file").map(FileItem(bag, ddm, _)).filter(f => !f.path.isEmpty && f.accessRights != "NONE")
       _ <- deleteBag(bag.bagId)
-      feedbackMessage <- createDocs(bag, ddm, files)
+      feedbackMessage <- files.map(createDoc(bag, ddm, _)).collectMixedCreateDocResults(bag.bagId)
       _ <- commit()
     } yield feedbackMessage
   }
@@ -83,22 +83,18 @@ class ApplicationWiring(configuration: Configuration)
       }
   }
 
-  private def createDocs(bag: Bag, ddm: DDM, files: Seq[FileItem]): Try[FeedBackMessage] = {
-    val results = files.map(fileItem => createDoc(bag, ddm, fileItem))
-    collectMixedResults(bag.bagId, results)
-  }
-
-  private def collectMixedResults(bagId: String, results: Seq[Try[FeedBackMessage]]) = {
-    val nrOfFailures = results.count(_.isFailure)
-    val successMessages = results.collect{ case Success(msg) => msg }
-    val count = successMessages.count(_.startsWith("update retried"))
-    val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
-    logger.info(stats)
-    if (nrOfFailures == 0)
-      Success(stats)
-    else {
-      val t = results.collectResults.failed.get
-      Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
+  private implicit class mixedResults(left: Seq[Try[FeedBackMessage]]) {
+    def collectMixedCreateDocResults(bagId: String): Try[FeedBackMessage] = {
+      val successMessages = left.collect { case Success(msg) => msg }
+      val count = successMessages.count(_.startsWith("update retried"))
+      val stats = s"Bag $bagId: updated ${ successMessages.size } files, $count of them without content"
+      logger.info(stats)
+      if (successMessages.size == left.size)
+        Success(stats)
+      else {
+        val t = left.collectResults.failed.get
+        Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
+      }
     }
   }
 }
