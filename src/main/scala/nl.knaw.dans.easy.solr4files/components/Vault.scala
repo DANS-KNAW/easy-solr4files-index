@@ -39,7 +39,7 @@ trait Vault extends DebugEnhancedLogging {
   def getBagIds(storeName: String): Try[Seq[String]] = for {
     storeURI <- Try(vaultBaseUri.resolve(s"stores/$storeName/bags"))
     lines <- storeURI.toURL.readLines
-  } yield lines.map { _.trim }
+  } yield lines.map(_.trim)
 
   def getSize(storeName: String, bagId: String, path: String): Long = {
     val url = fileURL(storeName, bagId, path)

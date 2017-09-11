@@ -16,14 +16,12 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.io.FileInputStream
-import java.net.{ HttpURLConnection, URL }
 
-import org.scalatest.{ FlatSpec, Matchers }
+import nl.knaw.dans.easy.solr4files.TestSupportFixture
 
-import scala.util.Try
 import scala.xml.XML
 
-class DDMSpec extends FlatSpec with Matchers {
+class DDMSpec extends TestSupportFixture {
 
   "solrLiteral" should "return proper values" in {
     assume(canConnectToEasySchemas)
@@ -52,7 +50,8 @@ class DDMSpec extends FlatSpec with Matchers {
       ("dataset_title", "Reis naar Centaur-planetoïde"),
       ("dataset_title", "Trip to Centaur asteroid")
     )
-    // verbose check to figure out which one is wrong in case of problems
+    // in case of problems "should contain theSameElementsAs" gives two very long lists that do not equal
+    // the following checks signal a problem in a short way at the end of the exception message
     expected.foreach(literals should contain(_))
     literals.foreach(expected should contain(_))
   }
@@ -80,15 +79,4 @@ class DDMSpec extends FlatSpec with Matchers {
     ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
 
-  def canConnectToEasySchemas: Boolean = Try {
-    new URL("http://easy.dans.knaw.nl/schemas").openConnection match {
-      case connection: HttpURLConnection =>
-        connection.setConnectTimeout(1000)
-        connection.setReadTimeout(1000)
-        connection.connect()
-        connection.disconnect()
-        true
-      case _ => throw new Exception
-    }
-  }.isSuccess
 }

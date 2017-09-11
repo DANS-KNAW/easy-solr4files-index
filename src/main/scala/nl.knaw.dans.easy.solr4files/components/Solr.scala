@@ -23,8 +23,9 @@ import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
-import org.apache.solr.common.util.ContentStreamBase
+import org.apache.solr.common.util.{ ContentStreamBase, NamedList }
 
+import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 trait Solr extends DebugEnhancedLogging {
@@ -38,9 +39,9 @@ trait Solr extends DebugEnhancedLogging {
       setMethod(METHOD.POST)
       addContentStream(new ContentStreamBase.URLStream(item.bag.fileUrl(item.path)))
       setParam("literal.id", solrDocId)
-      for ((key, value) <-
-           ("file_size", size.toString) +:
-             (item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals)
+      setParam("literal.easy_file_size", size.toString)
+      for (
+        (key, value) <- item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals
       ) {
         if (value.trim.nonEmpty)
           setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
@@ -66,10 +67,13 @@ trait Solr extends DebugEnhancedLogging {
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
     for {
       namedList <- Try(solrClient.request(req))
-      status = namedList.get("status")
-      _ <- if (status == null || status == "0") Success(())
-           else Failure(new Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }"))
+      status = Option(namedList.get("status")).withFilter("0" !=)
+      _ <- status.map(_ => statusError(namedList)).getOrElse(Success(()))
     } yield ()
+  }
+
+  private def statusError(namedList: NamedList[AnyRef]) = {
+    Failure(new Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }"))
   }
 
   def deleteBag(bagId: String): Try[FeedBackMessage] = Try {

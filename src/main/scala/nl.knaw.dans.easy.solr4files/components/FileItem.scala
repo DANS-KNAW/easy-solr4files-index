@@ -29,7 +29,7 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
   private val none = "NONE"
 
   // see ddm.xsd EasyAccessCategoryType
-  private def datasetAccessitbleTo = ddm.accessRights match {
+  private def datasetAccessibleTo = ddm.accessRights match {
     // @formatter:off
     case "OPEN_ACCESS"                      => anonymous
     case "OPEN_ACCESS_FOR_REGISTERED_USERS" => known
@@ -42,7 +42,7 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
 
   val path: String = xml.attribute("filepath").map(_.text).getOrElse("")
   val accessibleTo: String = ( xml \ "accessRights").map(_.text).mkString match {
-    case s if s.isEmpty => datasetAccessitbleTo
+    case "" => datasetAccessibleTo
     case s => s
   }
   val shouldIndex: Boolean = {
@@ -53,10 +53,12 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
   }
 
   val mimeType: String = (xml \ "format").text
-  val solrLiterals: SolrLiterals = Seq(
-    ("file_path", path),
-    ("file_checksum", bag.sha(path)),
-    ("file_mime_type", mimeType),
-    ("file_accessible_to", accessibleTo)
-  )
+  val solrLiterals: SolrLiterals =
+    if (!shouldIndex) Seq[(String,String)]() // skips the lazy reading of sha's
+    else Seq(
+      ("file_path", path),
+      ("file_checksum", bag.sha(path)),
+      ("file_mime_type", mimeType),
+      ("file_accessible_to", accessibleTo)
+    )
 }

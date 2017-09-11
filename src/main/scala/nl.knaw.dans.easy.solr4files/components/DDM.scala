@@ -40,10 +40,11 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
       )) ++
       (dcmiMetadata \ "subject").flatMap { n =>
         getAbrMap(n) match {
-          case map if map.isEmpty => Seq(("dataset_subject", n.text))
-          case abrMap => Seq(
+          case None => Seq(("dataset_subject", n.text))
+          case Some(map) if map.isEmpty => Seq(("dataset_subject", n.text))
+          case Some(map) => Seq(
             ("dataset_abr_subject", n.text), // TODO https://github.com/DANS-KNAW/easy-dtap/pull/131#pullrequestreview-60582037
-            ("dataset_subject", abrMap.get.getOrElse(n.text, ""))
+            ("dataset_subject", map.getOrElse(n.text, ""))
           )
         }
       } ++
@@ -101,7 +102,7 @@ object DDM {
       new URL(xsdURL).openStream()
     ).acquireAndGet(XML.load) // TODO error handling
     (xmlDoc \ "simpleType")
-      .map(n => (n.attribute("name").head.text, findKeyValuePairs(n)))
+      .map(n => (n.attribute("name").map(_.text).getOrElse(""), findKeyValuePairs(n)))
       .toMap
   }
 

@@ -43,7 +43,7 @@ case class Bag(storeName: String,
     vault.fileURL(storeName, bagId, path)
   }
 
-  private val fileShas: FileToShaMap = {
+  private lazy val fileShas: FileToShaMap = {
     for {
       url <- Try(vault.fileURL(storeName, bagId, "manifest-sha1.txt"))
       lines <- url.readLines

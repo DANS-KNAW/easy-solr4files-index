@@ -15,7 +15,12 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.util.NoSuchElementException
+
+import org.scalatest.Inside.inside
 import org.scalatest.{ FlatSpec, Matchers }
+
+import scala.util.{ Failure, Try }
 
 class FileItemSpec extends FlatSpec with Matchers {
 
@@ -53,9 +58,17 @@ class FileItemSpec extends FlatSpec with Matchers {
   }
 
   it should "also use the dataset rights as default" in {
-    val solrLiterals = FileItem(bag, ddm("OPEN_ACCESS_FOR_REGISTERED_USERS"), <file/>)
-      .solrLiterals.toMap
+    val item = FileItem(bag, ddm("OPEN_ACCESS_FOR_REGISTERED_USERS"), <file filepath="p"/>)
+    val solrLiterals = item.solrLiterals.toMap
     solrLiterals("file_accessible_to") shouldBe "KNOWN"
+  }
+
+  it should "not have read the sha in case of accessible to none" in {
+    val item = FileItem(bag, ddm("NO_ACCESS"), <file filepath="p"/>)
+    val solrLiterals = item.solrLiterals.toMap
+    inside(Try(solrLiterals("file_checksum"))) {
+      case Failure(e: NoSuchElementException) => e.getMessage shouldBe "key not found: file_checksum"
+    }
   }
 
   private def ddm(datasetAccessRights: String) = new DDM(

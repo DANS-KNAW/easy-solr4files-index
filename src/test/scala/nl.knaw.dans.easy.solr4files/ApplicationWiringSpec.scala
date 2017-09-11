@@ -24,20 +24,18 @@ import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
 import org.apache.solr.common.util.NamedList
-import org.scalatest.Inside._
-import org.scalatest._
 
 import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success }
 
-class ApplicationWiringSpec extends FlatSpec with Matchers {
+class ApplicationWiringSpec extends TestSupportFixture {
 
   private val store = "pdbs"
   private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
 
   private class MockedAndStubbedWiring extends ApplicationWiring(createConfig("vault")) {
     override lazy val solrClient = new SolrClient() {
-      // can't use mock because SolrClient has a final method, now we cant count the actual calls
+      // can't use mock because SolrClient has a final method, now we can't count the actual calls
 
       override def deleteByQuery(q: String): UpdateResponse = new UpdateResponse
 
@@ -46,66 +44,76 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
       override def close(): Unit = ()
 
       override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] = {
-        // non-zero provokes a retry without content
-        mockStatus(nrOfImageStreams(solrRequest))
+        new NamedList[AnyRef]() {
+          // non-zero status (or an Exception) provokes a retry without content
+          add("status", nrOfImageStreams(solrRequest).toString)
+        }
       }
     }
   }
 
   private def nrOfImageStreams(solrRequest: SolrRequest[_ <: SolrResponse]) = {
-    solrRequest.asInstanceOf[ContentStreamUpdateRequest]
-      .getParams.getMap.asScala.count { case (_, values) =>
-        values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty
-      }
-  }
-
-  private def mockStatus(status: Int) = {
-    val list: NamedList[AnyRef] = new NamedList[AnyRef]()
-    list.add("status", status.toString)
-    list
+    if (solrRequest.getContentStreams.isEmpty)
+      0
+    else {
+      val solrDocId = solrRequest
+        .asInstanceOf[ContentStreamUpdateRequest]
+        .getParams.getMap.asScala
+        .getOrElse("literal.id", Array(""))
+        .mkString.toLowerCase
+      if (solrDocId.endsWith(".mpg"))
+        1
+      else 0
+    }
   }
 
   "update" should "call the stubbed solrClient.request" in {
+    assume(canConnectToEasySchemas)
     val result = new MockedAndStubbedWiring().update(store, uuid)
-    inside(result) {
-      case Success(msg) => msg shouldBe s"Bag $uuid: updated 9 files, 2 of them without content"
+    inside(result) { case Success(msg) =>
+      msg shouldBe s"Bag $uuid: updated 9 files, 2 of them without content"
     }
   }
 
   "delete" should "call the stubbed solrClient.deleteByQuery" in {
     val result = new MockedAndStubbedWiring().delete(uuid)
-    inside(result) {
-      case Success(msg) => msg shouldBe s"Deleted file documents for bag $uuid"
+    inside(result) { case Success(msg) =>
+      msg shouldBe s"Deleted file documents for bag $uuid"
     }
   }
 
   "initSingleStore" should "call the stubbed ApplicationWiring.update method" in {
     val result = new ApplicationWiring(createConfig("vaultBagIds")) {
-      // vaultBagIds/bags can't be a file and directory so we need a stub, a failure proofs its called
-      override def update(store: String, uuid: String) = Failure(new Exception("stubbed ApplicationWiring.update"))
+      // vaultBagIds/bags can't be a file and directory so we need a stub, a failure demonstrates it's called
+      override def update(store: String, uuid: String) =
+        Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
-    inside(result) { case Failure(e) =>
-      e.getMessage shouldBe "Tried to update 5 bags, 5 exceptions occurred."
-      e.getCause.asInstanceOf[CompositeException].throwables.head.getMessage shouldBe "stubbed ApplicationWiring.update"
+    inside(result) { case Failure(Exception(msg, CompositeException(headCause :: _))) =>
+      msg shouldBe "Tried to update 5 bags, 5 exceptions occurred."
+      headCause should have message "stubbed ApplicationWiring.update"
     }
   }
 
   "initAllStores" should "call the stubbed ApplicationWiring.initSingleStore method" in {
     val result = new ApplicationWiring(createConfig("vaultStoreNames")) {
-      // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure proofs its called
+      // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure demonstrates it's called
       override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
-    inside(result) { case Failure(e) =>
-      e.getMessage shouldBe "Tried to update 4 stores, 4 exceptions occurred."
-      e.getCause.asInstanceOf[CompositeException].throwables.head.getMessage shouldBe "stubbed ApplicationWiring.initSingleStore"
+    inside(result) { case Failure(Exception(msg, CompositeException(headCause :: _))) =>
+      msg shouldBe "Tried to update 4 stores, 4 exceptions occurred."
+      headCause should have message "stubbed ApplicationWiring.initSingleStore"
     }
   }
 
   private def createConfig(testDir: String) = {
     val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString, "UTF8")
-    val properties = new PropertiesConfiguration()
-    properties.addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
-    properties.addProperty("vault.url", s"file:///$vaultPath/")
-    new Configuration("", properties)
+    new Configuration("", new PropertiesConfiguration() {
+      addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
+      addProperty("vault.url", s"file:///$vaultPath/")
+    })
   }
+}
+
+object Exception { // TODO need custom exceptions
+  def unapply(arg: Exception): Option[(String, Throwable)] = Some(arg.getMessage, arg.getCause)
 }

@@ -25,6 +25,7 @@ import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
 import scala.xml.{ Elem, XML }
 import scalaj.http.Http
+import nl.knaw.dans.lib.error._
 
 package object solr4files extends DebugEnhancedLogging {
 
@@ -60,11 +61,11 @@ package object solr4files extends DebugEnhancedLogging {
   implicit class RichURL(val left: URL) {
 
     def loadXml: Try[Elem] = Try {
-      resource.managed(left.openStream()).acquireAndGet(XML.load)
+      resource.managed(left.openStream()).acquireAndGet(XML.load) // TODO replace
     }
 
     def readLines: Try[Seq[String]] = Try {
-      resource.managed(left.openStream())
+      resource.managed(left.openStream()) // TODO replace
         .acquireAndGet(IOUtils.readLines)
         .asScala
     }
@@ -75,20 +76,9 @@ package object solr4files extends DebugEnhancedLogging {
           logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
           -1L
         case response =>
-          Try(response.headers("content-length").toLong).recoverWith {
-            case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e)
-              Success(-1L)
-          }.getOrElse(-1L)
-      }
-    }
-  }
-
-  implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
-    // TODO candidate for dans-scala-lib
-    def unsafeGetOrThrow: T = {
-      t match {
-        case Success(value) => value
-        case Failure(throwable) => throw throwable
+          Try(response.headers("content-length").toLong)
+            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e) }
+            .getOrElse(-1L)
       }
     }
   }
