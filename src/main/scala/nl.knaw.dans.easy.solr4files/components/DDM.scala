@@ -17,11 +17,12 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
-import nl.knaw.dans.easy.solr4files.SolrLiterals
 import nl.knaw.dans.easy.solr4files.components.DDM._
+import nl.knaw.dans.easy.solr4files.{ SolrLiterals, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.xml.{ Node, NodeSeq, XML }
+import scala.util.Try
+import scala.xml.{ Node, NodeSeq }
 
 class DDM(xml: Node) extends DebugEnhancedLogging {
 
@@ -29,7 +30,9 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   private val dcmiMetadata: NodeSeq = xml \ "dcmiMetadata"
 
   val accessRights: String = (profile \ "accessRights").text
-  val solrLiterals: SolrLiterals =
+
+  // lazy postpones loading vocabularies until a file without accessibleTo=none is found
+  lazy val solrLiterals: SolrLiterals =
     (dcmiMetadata \ "identifier").withFilter(isDOI).map(n => ("dataset_doi", n.text)) ++
       (profile \ "creatorDetails").map(n => ("dataset_creator", n.text)) ++
       (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
@@ -73,6 +76,15 @@ object DDM {
 
   private val abrPrefix = "abr:ABR"
 
+  private lazy val abrMaps = loadVocabularies("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
+    .map { case (k, v) => // attributes in xsd are complex/periode
+      (s"$abrPrefix$k", v) // we want to search with DDM attributes which are abr:ABRcomplex/abr:ABRperiode
+    }
+
+  private lazy val audienceMap = loadVocabularies(
+    "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
+  )("Discipline")
+
   private def getAbrMap(ddmSubjectNode: Node): Option[Map[String, String]] = {
     ddmSubjectNode
       .attribute(xsiURI, "type")
@@ -88,23 +100,14 @@ object DDM {
       .contains("id-type:DOI")
   }
 
-  private val abrMaps = loadVocabularies("https://easy.dans.knaw.nl/schemas/vocab/2012/10/abr-type.xsd")
-    .map { case (k, v) => // attributes in xsd are complex/periode
-      (s"$abrPrefix$k", v) // we want to search with DDM attributes which are abr:ABRcomplex/abr:ABRperiode
-    }
-
-  private val audienceMap = loadVocabularies(
-    "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
-  )("Discipline")
-
   private def loadVocabularies(xsdURL: String): Map[String, Map[String, String]] = {
-    val xmlDoc = resource.managed(
-      new URL(xsdURL).openStream()
-    ).acquireAndGet(XML.load) // TODO error handling
-    (xmlDoc \ "simpleType")
+    for {
+      url <- Try(new URL(xsdURL))
+      xml <- url.loadXml
+    } yield (xml \ "simpleType")
       .map(n => (n.attribute("name").map(_.text).getOrElse(""), findKeyValuePairs(n)))
       .toMap
-  }
+  }.getOrElse(Map[String, Map[String, String]]())
 
   private def findKeyValuePairs(table: Node): Map[String, String] = {
     (table \\ "enumeration")

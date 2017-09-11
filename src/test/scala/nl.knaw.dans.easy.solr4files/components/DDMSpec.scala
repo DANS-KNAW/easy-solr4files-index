@@ -15,19 +15,18 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.io.FileInputStream
-
-import nl.knaw.dans.easy.solr4files.TestSupportFixture
-
-import scala.xml.XML
+import nl.knaw.dans.easy.solr4files.{ TestSupportFixture, _ }
 
 class DDMSpec extends TestSupportFixture {
 
+  private val vault = mockVault("vault")
+
   "solrLiteral" should "return proper values" in {
     assume(canConnectToEasySchemas)
-    val ddm = new DDM(resource.managed(new FileInputStream(
-      "src/test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427/metadata/dataset.xml"
-    )).acquireAndGet(XML.load))
+    val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
+    val xml = vault.fileURL("pdbs", uuid, "metadata/dataset.xml").loadXml.get
+
+    val ddm = new DDM(xml)
     ddm.accessRights shouldBe "OPEN_ACCESS"
     val literals: Seq[(String, String)] = ddm.solrLiterals
       .map { case (k, v) => (k, v.replaceAll("\\s+", " ").trim) }

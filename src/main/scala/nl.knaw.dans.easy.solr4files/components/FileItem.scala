@@ -53,12 +53,12 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
   }
 
   val mimeType: String = (xml \ "format").text
-  val solrLiterals: SolrLiterals =
-    if (!shouldIndex) Seq[(String,String)]() // skips the lazy reading of sha's
-    else Seq(
-      ("file_path", path),
-      ("file_checksum", bag.sha(path)),
-      ("file_mime_type", mimeType),
-      ("file_accessible_to", accessibleTo)
-    )
+
+  // lazy postpones loading DDM.vocabularies and Bag.sha's
+  lazy val solrLiterals: SolrLiterals = Seq(
+    ("file_path", path),
+    ("file_checksum", bag.sha(path)),
+    ("file_mime_type", mimeType),
+    ("file_accessible_to", accessibleTo)
+  )
 }

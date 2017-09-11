@@ -57,12 +57,12 @@ case class Bag(storeName: String,
     fileShas.getOrElse(path, "")
   }
 
-  val solrLiterals: SolrLiterals = Seq(
-    ("dataset_depositor_id", getDepositor),
-    ("dataset_id", bagId)
-  )
-
   def loadDDM: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/dataset.xml").loadXml
 
   def loadFilesXML: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/files.xml").loadXml
+
+  lazy val solrLiterals: SolrLiterals = Seq(
+    ("dataset_depositor_id", getDepositor),
+    ("dataset_id", bagId)
+  )
 }

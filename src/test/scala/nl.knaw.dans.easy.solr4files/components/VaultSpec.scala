@@ -15,21 +15,20 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import org.scalatest.Inside._
-import org.scalatest._
+import nl.knaw.dans.easy.solr4files.TestSupportFixture
 
 import scala.util.Success
 
-class VaultSpec extends FlatSpec with Matchers {
+class VaultSpec extends TestSupportFixture {
 
   "getStoreNames" should "return names" in {
-    inside(MockedVault("vaultStoreNames").getStoreNames) {
+    inside(mockVault("vaultStoreNames").getStoreNames) {
       case Success(names) => names should contain only("foo", "bar", "rabarbera", "barbapapa")
     }
   }
 
   "getBagIds" should "return UUID's" in {
-    inside(MockedVault("vaultBagIds").getBagIds("pdbs")) {
+    inside(mockVault("vaultBagIds").getBagIds("pdbs")) {
       case Success(names) => names should contain only(
         "9da0541a-d2c8-432e-8129-979a9830b427",
         "24d305fc-060c-4b3b-a5f5-9f212d463cbc",
