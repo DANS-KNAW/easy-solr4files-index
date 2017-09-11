@@ -54,10 +54,7 @@ class ApplicationWiringSpec extends FlatSpec with Matchers {
 
   private def nrOfImageStreams(solrRequest: SolrRequest[_ <: SolrResponse]) = {
     solrRequest.asInstanceOf[ContentStreamUpdateRequest]
-      .getParams.getMap.asScala
-      .toSeq.sortBy { case (k, _) => k }
-      .toMap
-      .count { case (_, values) =>
+      .getParams.getMap.asScala.count { case (_, values) =>
         values.head.toLowerCase.endsWith(".mpg") && !solrRequest.getContentStreams.isEmpty
       }
   }
