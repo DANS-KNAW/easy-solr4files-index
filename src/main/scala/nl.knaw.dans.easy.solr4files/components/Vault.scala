@@ -16,47 +16,40 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.io.File
-import java.net.URI
+import java.net.{ URI, URL }
 import java.nio.file.Paths
 
+import nl.knaw.dans.easy.solr4files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Success, Try }
-import scalaj.http.Http
+import scala.util.Try
 
 trait Vault extends DebugEnhancedLogging {
-  this: VaultIO =>
+  val vaultBaseUri: URI
 
-  def getStoreNames: Try[Seq[String]] = Try {
-    val uri = vaultBaseUri.resolve("stores")
-    logger.info(s"getting storeNames with $uri")
-    linesFrom(uri).map { line =>
-      // the Vault returns localhost, we need the configured host
-      val trimmed = line.trim.replace("<", "").replace(">", "")
-      Paths.get(new URI(trimmed).getPath).getFileName.toString
-    }
+  def getStoreNames: Try[Seq[String]] = for {
+    uri <- Try(vaultBaseUri.resolve("stores"))
+    _ = logger.info(s"getting storeNames with $uri")
+    lines <- uri.toURL.readLines
+  } yield lines.map { line =>
+    val trimmed = line.trim.replace("<", "").replace(">", "")
+    Paths.get(new URI(trimmed).getPath).getFileName.toString
   }
 
-  def getBagIds(storeName: String): Try[Seq[String]] = Try {
-    val storeURI = vaultBaseUri.resolve(s"stores/$storeName/bags")
-    logger.info(s"getting bag ids with $storeURI")
-    linesFrom(storeURI).map { _.trim }
-  }
+  def getBagIds(storeName: String): Try[Seq[String]] = for {
+    storeURI <- Try(vaultBaseUri.resolve(s"stores/$storeName/bags"))
+    lines <- storeURI.toURL.readLines
+  } yield lines.map { _.trim }
 
   def getSize(storeName: String, bagId: String, path: String): Long = {
     val url = fileURL(storeName, bagId, path)
-
     if (url.getProtocol.toLowerCase == "file")
       new File(url.getPath).length
-    else Http(url.toString).method("HEAD").asString match {
-      case response if !response.isSuccess =>
-        logger.warn(s"getSize($url) ${ response.statusLine }, details: ${ response.body }")
-        -1L
-      case response =>
-        Try(response.headers("content-length").toLong).recoverWith {
-          case e => logger.warn(s"getSize($url) content-length: ${ e.getMessage }", e)
-            Success(-1L)
-        }.getOrElse(-1L)
-    }
+    else url.getContentLength
+  }
+
+  @throws // (NullPointerException,IllegalArgumentException)
+  def fileURL(storeName: String, bagId: String, file: String): URL = {
+    vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file").toURL
   }
 }

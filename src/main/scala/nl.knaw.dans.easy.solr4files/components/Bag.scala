@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
-import nl.knaw.dans.easy.solr4files.{ FileToShaMap, SolrLiterals }
+import nl.knaw.dans.easy.solr4files.{ FileToShaMap, SolrLiterals, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try
@@ -25,23 +25,29 @@ import scala.xml.Elem
 
 case class Bag(storeName: String,
                bagId: String,
-               private val vaultIO: VaultIO
+               private val vault: Vault
               ) extends DebugEnhancedLogging {
 
-  private def getDepositor: String = Try {
+  private def getDepositor: String = {
     val key = "EASY-User-Account"
-    vaultIO.linesFrom(storeName, bagId, "bag-info.txt")
-      .filter(_.trim.startsWith(key))
-      .map(_.trim.replace(key, "").trim.replace(":", "").trim)
-      .head
-  }.getOrElse("unknown")
+    for {
+      url <- Try(vault.fileURL(storeName, bagId, "bag-info.txt"))
+      lines <- url.readLines
+      wantedLines = lines.filter(_.trim.startsWith(key))
+      values = wantedLines.map(_.trim.replace(key, "").trim.replace(":", "").trim)
+      value <- Try(values.head)
+    } yield value
+  }.getOrElse("")
 
   def fileUrl(path: String): URL = {
-    vaultIO.fileURL(storeName, bagId, path)
+    vault.fileURL(storeName, bagId, path)
   }
 
-  private val fileShas: FileToShaMap = Try {
-    vaultIO.linesFrom(storeName, bagId, "manifest-sha1.txt").map { line: String =>
+  private val fileShas: FileToShaMap = {
+    for {
+      url <- Try(vault.fileURL(storeName, bagId, "manifest-sha1.txt"))
+      lines <- url.readLines
+    } yield lines.map { line: String =>
       val Array(sha, path) = line.trim.split("""\s+""")
       (path, sha)
     }.toMap
@@ -56,7 +62,7 @@ case class Bag(storeName: String,
     ("dataset_id", bagId)
   )
 
-  def loadDDM: Try[Elem] = vaultIO.loadXml(storeName, bagId, "metadata/dataset.xml")
+  def loadDDM: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/dataset.xml").loadXml
 
-  def loadFilesXML: Try[Elem] = vaultIO.loadXml(storeName, bagId, "metadata/files.xml")
+  def loadFilesXML: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/files.xml").loadXml
 }

@@ -15,11 +15,18 @@
  */
 package nl.knaw.dans.easy
 
+import java.net.URL
+
 import nl.knaw.dans.lib.error.CompositeException
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.commons.io.IOUtils
 
+import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
+import scala.xml.{ Elem, XML }
+import scalaj.http.Http
 
-package object solr4files {
+package object solr4files extends DebugEnhancedLogging {
 
   type FeedBackMessage = String
   type FileToShaMap = Map[String, String]
@@ -31,7 +38,7 @@ package object solr4files {
   case class SubmittedWithContent(solrId: String) extends Submission(solrId)
   case class SubmittedJustMetadata(solrId: String) extends Submission(solrId)
 
-  implicit class mixedResults(val left: Seq[Try[Submission]]) extends AnyVal {
+  implicit class MixedResults(val left: Seq[Try[Submission]]) extends AnyVal {
     def collectResults(bagId: String): Try[FeedBackMessage] = {
       val (withContentCount, justMetadataCount, failures) = left.foldRight((0, 0, List.empty[Throwable])) {
         case (Success(SubmittedWithContent(_)), (withContent, justMetadata, es)) => (withContent + 1, justMetadata, es)
@@ -46,6 +53,32 @@ package object solr4files {
       else {
         val t = CompositeException(failures)
         Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
+      }
+    }
+  }
+
+  implicit class RichURL(val left: URL) {
+
+    def loadXml: Try[Elem] = Try {
+      resource.managed(left.openStream()).acquireAndGet(XML.load)
+    }
+
+    def readLines: Try[Seq[String]] = Try {
+      resource.managed(left.openStream())
+        .acquireAndGet(IOUtils.readLines)
+        .asScala
+    }
+
+    def getContentLength: Long = {
+      Http(left.toString).method("HEAD").asString match {
+        case response if !response.isSuccess =>
+          logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
+          -1L
+        case response =>
+          Try(response.headers("content-length").toLong).recoverWith {
+            case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e)
+              Success(-1L)
+          }.getOrElse(-1L)
       }
     }
   }

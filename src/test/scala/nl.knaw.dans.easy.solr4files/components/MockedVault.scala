@@ -20,7 +20,7 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-case class MockedVault(testDir: String) extends Vault with VaultIO with DebugEnhancedLogging {
+case class MockedVault(testDir: String) extends Vault with DebugEnhancedLogging {
   private val absolutePath = URLEncoder.encode(Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString, "UTF8")
   override val vaultBaseUri = new URI(s"file:///$absolutePath/")
 }
