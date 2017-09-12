@@ -16,26 +16,29 @@
 package nl.knaw.dans.easy
 
 import java.io.File
-import java.net.{ URL, URLDecoder }
+import java.net.{URL, URLDecoder}
 
-import nl.knaw.dans.lib.error.{ CompositeException, _ }
+import nl.knaw.dans.lib.error.{CompositeException, _}
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
 
-import scala.util.{ Failure, Success, Try }
-import scala.xml.{ Elem, XML }
-import scalaj.http.Http
+import scala.util.{Failure, Success, Try}
+import scala.xml.{Elem, XML}
+import scalaj.http.{Http, HttpResponse}
 
 package object solr4files extends DebugEnhancedLogging {
 
   type FeedBackMessage = String
-  type FileToShaMap = Map[String, String]
   type SolrLiterals = Seq[(String, String)]
+
+  type FileToShaMap = Map[String, String]
+  def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
 
   case class WrappedCompositeException(msg: String, cause: CompositeException )
     extends Exception(s"$msg ${cause.getMessage()}", cause)
 
-  def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
+  case class HttpStatusException(msg: String, response: HttpResponse[String] )
+    extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 
   abstract sealed class Submission(solrId: String)
   case class SubmittedWithContent(solrId: String) extends Submission(solrId)
@@ -72,9 +75,7 @@ package object solr4files extends DebugEnhancedLogging {
       }
       else Try(Http(left.toString).method("GET").asString).flatMap {
         case response if response.isSuccess => Success(response.body)
-        case response => Failure(new Exception(
-          s"getSize($left) ${ response.statusLine }, details: ${ response.body }"
-        ))
+        case response => Failure(HttpStatusException(s"getSize($left)", response))
       }
     }
 
