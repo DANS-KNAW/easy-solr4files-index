@@ -51,7 +51,7 @@ case class Bag(storeName: String,
       val Array(sha, path) = line.trim.split("""\s+""")
       (path, sha)
     }.toMap
-  }.getOrElse(FileToShaMap())
+  }.getOrElse(Map.empty)
 
   def sha(path: String): String = {
     fileShas.getOrElse(path, "")

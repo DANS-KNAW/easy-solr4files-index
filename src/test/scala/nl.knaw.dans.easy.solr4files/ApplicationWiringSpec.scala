@@ -89,7 +89,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
     inside(result) { case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
-      e.getMessage shouldBe "Tried to update 5 bags, 5 exceptions occurred."
+      e should have message "Tried to update 5 bags, 5 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.update"
     }
   }
@@ -101,7 +101,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
     }.initAllStores()
     inside(result) {
       case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
-      e.getMessage shouldBe "Tried to update 4 stores, 4 exceptions occurred."
+      e should have message "Tried to update 4 stores, 4 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.initSingleStore"
     }
   }

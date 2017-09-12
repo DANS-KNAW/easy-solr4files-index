@@ -31,9 +31,7 @@ package object solr4files extends DebugEnhancedLogging {
 
   type FeedBackMessage = String
   type SolrLiterals = Seq[(String, String)]
-
   type FileToShaMap = Map[String, String]
-  def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
 
   case class WrappedCompositeException(msg: String, cause: CompositeException )
     extends Exception(s"$msg ${cause.getMessage()}", cause)
