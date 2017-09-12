@@ -32,6 +32,9 @@ package object solr4files extends DebugEnhancedLogging {
   type FileToShaMap = Map[String, String]
   type SolrLiterals = Seq[(String, String)]
 
+  case class WrappedCompositeException(msg: String, cause: CompositeException )
+    extends Exception(s"$msg ${cause.getMessage()}", cause)
+
   def FileToShaMap(xs: (String, String)*): FileToShaMap = Seq(xs: _*).toMap
 
   abstract sealed class Submission(solrId: String)
@@ -47,13 +50,8 @@ package object solr4files extends DebugEnhancedLogging {
       }
       val total = withContentCount + justMetadataCount
       val stats = s"Bag $bagId: updated $total files, $justMetadataCount of them without content"
-
-      if (total == left.size)
-        Success(stats)
-      else {
-        val t = CompositeException(failures)
-        Failure(new Exception(s"$stats, another ${ t.getMessage }", t))
-      }
+      if (total == left.size) Success(stats)
+      else Failure(WrappedCompositeException(s"$stats, another", CompositeException(failures)))
     }
   }
 

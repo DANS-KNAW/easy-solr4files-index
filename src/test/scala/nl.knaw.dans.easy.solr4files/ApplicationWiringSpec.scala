@@ -22,11 +22,11 @@ import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
-import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
+import org.apache.solr.client.solrj.{SolrClient, SolrRequest, SolrResponse}
 import org.apache.solr.common.util.NamedList
 
 import scala.collection.JavaConverters._
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 class ApplicationWiringSpec extends TestSupportFixture {
 
@@ -88,7 +88,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
       override def update(store: String, uuid: String) =
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
-    inside(result) { case Failure(Exception(msg, CompositeException(headCause :: _))) =>
+    inside(result) { case Failure(WrappedCompositeException(msg, CompositeException(headCause :: _))) =>
       msg shouldBe "Tried to update 5 bags, 5 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.update"
     }
@@ -99,7 +99,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
       // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure demonstrates it's called
       override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
-    inside(result) { case Failure(Exception(msg, CompositeException(headCause :: _))) =>
+    inside(result) {
+      case Failure(WrappedCompositeException(msg, CompositeException(headCause :: _))) =>
       msg shouldBe "Tried to update 4 stores, 4 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.initSingleStore"
     }
@@ -112,8 +113,4 @@ class ApplicationWiringSpec extends TestSupportFixture {
       addProperty("vault.url", s"file:///$vaultPath/")
     })
   }
-}
-
-object Exception { // TODO need custom exceptions
-  def unapply(arg: Exception): Option[(String, Throwable)] = Some(arg.getMessage, arg.getCause)
 }

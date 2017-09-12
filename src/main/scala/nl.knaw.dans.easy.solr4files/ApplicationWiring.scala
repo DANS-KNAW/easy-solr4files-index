@@ -70,7 +70,7 @@ class ApplicationWiring(configuration: Configuration)
       .map(initSingleStore)
       .collectResults
       .recoverWith { case t: CompositeException =>
-        throw new Exception(s"Tried to update ${ storeNames.size } stores, ${ t.getMessage() }", t)
+        throw WrappedCompositeException(s"Tried to update ${ storeNames.size } stores,", t)
       }
   }
 
@@ -79,7 +79,7 @@ class ApplicationWiring(configuration: Configuration)
       .map(uuid => update(storeName, uuid))
       .collectResults
       .recoverWith { case t: CompositeException =>
-        throw new Exception(s"Tried to update ${ bagIds.size } bags, ${ t.getMessage() }", t)
+        throw WrappedCompositeException(s"Tried to update ${ bagIds.size } bags,", t)
       }
   }
 }
