@@ -16,17 +16,12 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import nl.knaw.dans.easy.solr4files.SolrLiterals
+import nl.knaw.dans.easy.solr4files.components.FileItem._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.Node
 
 case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging {
-
-  private val anonymous = "ANONYMOUS"
-  private val known = "KNOWN"
-  private val restrictedGroup = "RESTRICTED_GROUP"
-  private val restrictedRequest = "RESTRICTED_REQUEST"
-  private val none = "NONE"
 
   // see ddm.xsd EasyAccessCategoryType
   private def datasetAccessibleTo = ddm.accessRights match {
@@ -46,19 +41,29 @@ case class FileItem(bag: Bag, ddm: DDM, xml: Node) extends DebugEnhancedLogging 
     case s => s
   }
   val shouldIndex: Boolean = {
-    val accessibleTos = Set (anonymous, known, restrictedGroup, restrictedRequest)
     // without a path we can't create a solrID nor fetch the content
     // multiple or otherwise garbage access rights is treated as "NONE": don't index
-    path.nonEmpty && accessibleTos.contains(accessibleTo)
+    path.nonEmpty && accessible.contains(accessibleTo)
   }
 
   val mimeType: String = (xml \ "format").text
 
-  // lazy postpones loading DDM.vocabularies and Bag.sha's
+  // lazy postpones loading Bag.sha's
   lazy val solrLiterals: SolrLiterals = Seq(
     ("file_path", path),
     ("file_checksum", bag.sha(path)),
     ("file_mime_type", mimeType),
     ("file_accessible_to", accessibleTo)
   )
+}
+
+object FileItem {
+  private val anonymous = "ANONYMOUS"
+  private val known = "KNOWN"
+  private val restrictedGroup = "RESTRICTED_GROUP"
+  private val restrictedRequest = "RESTRICTED_REQUEST"
+  private val none = "NONE"
+
+  /** all above but none */
+  private val accessible = Set (anonymous, known, restrictedGroup, restrictedRequest)
 }

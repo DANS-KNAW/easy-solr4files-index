@@ -15,11 +15,7 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.util.NoSuchElementException
-
 import nl.knaw.dans.easy.solr4files.TestSupportFixture
-
-import scala.util.{ Failure, Try }
 
 class FileItemSpec extends TestSupportFixture {
 
@@ -62,9 +58,14 @@ class FileItemSpec extends TestSupportFixture {
     solrLiterals("file_accessible_to") shouldBe "KNOWN"
   }
 
-  ignore should "not have read the sha in case of accessible to none" in {
+  ignore should "not have read the lazy files in case of accessible to none" in { // TODO
     val item = FileItem(bag, ddm("NO_ACCESS"), <file filepath="p"/>)
-    // TODO how to peek whether the lazy values are not loaded?
+
+    // The bag.sha's and ddm.vocabularies are private
+    // so we need side effects, not something like https://stackoverflow.com/questions/1651927/how-to-unit-test-for-laziness
+    // we could mock the vault.fileURL for this test
+    // throwing an error when called for the sha's
+    // remains checking for the vocabularies in DDM
   }
 
   private def ddm(datasetAccessRights: String) = new DDM(

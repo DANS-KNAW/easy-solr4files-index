@@ -61,7 +61,7 @@ case class Bag(storeName: String,
 
   def loadFilesXML: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/files.xml").loadXml
 
-  lazy val solrLiterals: SolrLiterals = Seq(
+  val solrLiterals: SolrLiterals = Seq(
     ("dataset_depositor_id", getDepositor),
     ("dataset_id", bagId)
   )
