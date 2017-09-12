@@ -41,10 +41,10 @@ trait Vault extends DebugEnhancedLogging {
   } yield lines.map(_.trim)
 
   def getSize(storeName: String, bagId: String, path: String): Long = {
-    fileURL(storeName, bagId, path).getContentLength
+    fileURL(storeName, bagId, path).map(_.getContentLength).getOrElse(-1L)
   }
 
-  def fileURL(storeName: String, bagId: String, file: String): URL = {
+  def fileURL(storeName: String, bagId: String, file: String): Try[URL] = Try{
     vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file").toURL
   }
 }

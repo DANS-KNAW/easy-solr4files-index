@@ -31,7 +31,7 @@ case class Bag(storeName: String,
   private def getDepositor: String = {
     val key = "EASY-User-Account"
     for {
-      url <- Try(vault.fileURL(storeName, bagId, "bag-info.txt"))
+      url <- vault.fileURL(storeName, bagId, "bag-info.txt")
       lines <- url.readLines
       wantedLines = lines.filter(_.trim.startsWith(key))
       values = wantedLines.map(_.trim.replace(key, "").trim.replace(":", "").trim)
@@ -39,13 +39,13 @@ case class Bag(storeName: String,
     } yield value
   }.getOrElse("")
 
-  def fileUrl(path: String): URL = {
+  def fileUrl(path: String): Try[URL] = {
     vault.fileURL(storeName, bagId, path)
   }
 
   private lazy val fileShas: FileToShaMap = {
     for {
-      url <- Try(vault.fileURL(storeName, bagId, "manifest-sha1.txt"))
+      url <- vault.fileURL(storeName, bagId, "manifest-sha1.txt")
       lines <- url.readLines
     } yield lines.map { line: String =>
       val Array(sha, path) = line.trim.split("""\s+""")
@@ -57,9 +57,13 @@ case class Bag(storeName: String,
     fileShas.getOrElse(path, "")
   }
 
-  def loadDDM: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/dataset.xml").loadXml
+  def loadDDM: Try[Elem] = vault
+    .fileURL(storeName, bagId, "metadata/dataset.xml")
+    .flatMap(_.loadXml)
 
-  def loadFilesXML: Try[Elem] = vault.fileURL(storeName, bagId, "metadata/files.xml").loadXml
+  def loadFilesXML: Try[Elem] = vault
+    .fileURL(storeName, bagId, "metadata/files.xml")
+    .flatMap(_.loadXml)
 
   val solrLiterals: SolrLiterals = Seq(
     ("dataset_depositor_id", getDepositor),

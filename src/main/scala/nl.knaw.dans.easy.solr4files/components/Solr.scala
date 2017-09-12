@@ -34,10 +34,11 @@ trait Solr extends DebugEnhancedLogging {
 
   def createDoc(item: FileItem, size: Long): Try[Submission] = {
     val solrDocId = s"${ item.bag.bagId }/${ item.path }"
+    val fileUrl: URL = item.bag.fileUrl(item.path).get // TODO error handling
     val request = new ContentStreamUpdateRequest("/update/extract") {
       setWaitSearcher(false)
       setMethod(METHOD.POST)
-      addContentStream(new ContentStreamBase.URLStream(item.bag.fileUrl(item.path)))
+      addContentStream(new ContentStreamBase.URLStream(fileUrl))
       setParam("literal.id", solrDocId)
       setParam("literal.easy_file_size", size.toString)
       for (
