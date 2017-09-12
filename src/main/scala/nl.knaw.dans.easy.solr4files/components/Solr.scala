@@ -22,11 +22,11 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
-import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
-import org.apache.solr.common.util.{ ContentStreamBase, NamedList }
+import org.apache.solr.client.solrj.{SolrClient, SolrQuery}
+import org.apache.solr.common.util.ContentStreamBase
 
 import scala.language.postfixOps
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 trait Solr extends DebugEnhancedLogging {
   val solrUrl: URL
@@ -52,30 +52,24 @@ trait Solr extends DebugEnhancedLogging {
     }
   }
 
-
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[Submission] = {
     executeUpdate(req)
       .map(_ => SubmittedWithContent(solrDocId))
       .recoverWith { case t =>
-        logger.warn(s"First submit attempt of $solrDocId failed with ${ t.getMessage }", t)
+        logger.warn(s"Submission with content of $solrDocId failed with ${ t.getMessage }", t)
         req.getContentStreams.clear() // retry with just metadata
-        executeUpdate(req).map { _ =>
-          logger.error(s"Failed to submit $solrDocId with content, successfully retried with just metadata")
-          SubmittedJustMetadata(solrDocId)
-        }
+        executeUpdate(req).map(_ => SubmittedJustMetadata(solrDocId))
       }
   }
 
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
-    for {
-      namedList <- Try(solrClient.request(req))
-      status = Option(namedList.get("status")).withFilter("0" !=)
-      _ <- status.map(_ => statusError(namedList)).getOrElse(Success(()))
-    } yield ()
-  }
-
-  private def statusError(namedList: NamedList[AnyRef]) = {
-    Failure(new Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }"))
+    Try(solrClient.request(req))
+      .flatMap(namedList =>
+        Option(namedList.get("status"))
+        .withFilter("0" !=)
+        .map(_ => Failure(SolrStatusException(namedList)))
+        .getOrElse(Success(()))
+      )
   }
 
   def deleteBag(bagId: String): Try[FeedBackMessage] = Try {

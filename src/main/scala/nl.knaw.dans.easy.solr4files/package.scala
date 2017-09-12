@@ -21,6 +21,7 @@ import java.net.{URL, URLDecoder}
 import nl.knaw.dans.lib.error.{CompositeException, _}
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
+import org.apache.solr.common.util.NamedList
 
 import scala.util.{Failure, Success, Try}
 import scala.xml.{Elem, XML}
@@ -40,9 +41,14 @@ package object solr4files extends DebugEnhancedLogging {
   case class HttpStatusException(msg: String, response: HttpResponse[String] )
     extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 
+  case class SolrStatusException(namedList: NamedList[AnyRef] )
+    extends Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }")
+
   abstract sealed class Submission(solrId: String)
   case class SubmittedWithContent(solrId: String) extends Submission(solrId)
-  case class SubmittedJustMetadata(solrId: String) extends Submission(solrId)
+  case class SubmittedJustMetadata(solrId: String) extends Submission(solrId){
+    logger.warn(s"Resubmitted $solrId with just metadata")
+  }
 
   implicit class MixedResults(val left: Seq[Try[Submission]]) extends AnyVal {
     def collectResults(bagId: String): Try[FeedBackMessage] = {
@@ -75,23 +81,21 @@ package object solr4files extends DebugEnhancedLogging {
       }
       else Try(Http(left.toString).method("GET").asString).flatMap {
         case response if response.isSuccess => Success(response.body)
-        case response => Failure(HttpStatusException(s"getSize($left)", response))
+        case response => Failure(HttpStatusException(s"getContent($left)", response))
       }
     }
 
     def getContentLength: Long = {
       if (left.getProtocol.toLowerCase == "file")
-        Try(new File(left.getPath).length).getOrElse(-1L)
-      else Try(Http(left.toString).method("HEAD").asString).map {
-        case response if !response.isSuccess =>
-          logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
-          -1L
-        case response =>
-          Try(response.headers("content-length").toLong)
-            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e) }
-            .getOrElse(-1L)
-      }.getOrElse(-1L)
-    }
+        Try(new File(left.getPath).length)
+      else {
+        Try(Http(left.toString).method("HEAD").asString).flatMap {
+          case response if response.isSuccess => Try(response.headers("content-length").toLong)
+          case response => Failure(HttpStatusException(s"getSize($left)", response))
+        }
+      }
+    }.doIfFailure { case e => logger.warn(e.getMessage, e) }
+      .getOrElse(-1L)
   }
 }
 
