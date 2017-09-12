@@ -15,15 +15,15 @@
  */
 package nl.knaw.dans.easy
 
-import java.io.{ByteArrayInputStream, File}
-import java.net.{URL, URLDecoder}
+import java.io.File
+import java.net.{ URL, URLDecoder }
 
-import nl.knaw.dans.lib.error.{CompositeException, _}
+import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
 
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, XML}
+import scala.util.{ Failure, Success, Try }
+import scala.xml.{ Elem, XML }
 import scalaj.http.Http
 
 package object solr4files extends DebugEnhancedLogging {
@@ -71,7 +71,8 @@ package object solr4files extends DebugEnhancedLogging {
       if (left.getProtocol.toLowerCase == "file") {
         val path = URLDecoder.decode(left.getPath, "UTF8")
         Try(readFileToString(new File(path), "UTF8"))
-      } else Try(Http(left.toString).method("GET").asString).flatMap {
+      }
+      else Try(Http(left.toString).method("GET").asString).flatMap {
         case response if response.isSuccess => Success(response.body)
         case response => Failure(new Exception(
           s"getSize($left) ${ response.statusLine }, details: ${ response.body }"
@@ -84,11 +85,11 @@ package object solr4files extends DebugEnhancedLogging {
         Try(new File(left.getPath).length).getOrElse(-1L)
       else Try(Http(left.toString).method("HEAD").asString).map {
         case response if !response.isSuccess =>
-          logger.warn(s"getSize($left) ${response.statusLine}, details: ${response.body}")
+          logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
           -1L
         case response =>
           Try(response.headers("content-length").toLong)
-            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${e.getMessage}", e) }
+            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e) }
             .getOrElse(-1L)
       }.getOrElse(-1L)
     }

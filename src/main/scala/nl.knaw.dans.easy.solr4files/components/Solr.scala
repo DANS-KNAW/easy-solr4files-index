@@ -33,7 +33,7 @@ trait Solr extends DebugEnhancedLogging {
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
   def createDoc(item: FileItem, size: Long): Try[Submission] = {
-    item.bag.fileUrl(item.path).flatMap{ fileUrl =>
+    item.bag.fileUrl(item.path).flatMap { fileUrl =>
       val solrDocId = s"${ item.bag.bagId }/${ item.path }"
       val request = new ContentStreamUpdateRequest("/update/extract") {
         setWaitSearcher(false)
