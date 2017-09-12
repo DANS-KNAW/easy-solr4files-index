@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.io.File
-import java.net.{ URI, URL }
+import java.net.{URI, URL}
 import java.nio.file.Paths
 
 import nl.knaw.dans.easy.solr4files._
@@ -42,13 +41,9 @@ trait Vault extends DebugEnhancedLogging {
   } yield lines.map(_.trim)
 
   def getSize(storeName: String, bagId: String, path: String): Long = {
-    val url = fileURL(storeName, bagId, path)
-    if (url.getProtocol.toLowerCase == "file")
-      new File(url.getPath).length
-    else url.getContentLength
+    fileURL(storeName, bagId, path).getContentLength
   }
 
-  @throws // (NullPointerException,IllegalArgumentException)
   def fileURL(storeName: String, bagId: String, file: String): URL = {
     vaultBaseUri.resolve(s"stores/$storeName/bags/$bagId/$file").toURL
   }

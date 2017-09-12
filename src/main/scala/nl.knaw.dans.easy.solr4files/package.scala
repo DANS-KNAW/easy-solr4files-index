@@ -15,17 +15,16 @@
  */
 package nl.knaw.dans.easy
 
-import java.net.URL
+import java.io.{ByteArrayInputStream, File}
+import java.net.{URL, URLDecoder}
 
-import nl.knaw.dans.lib.error.CompositeException
+import nl.knaw.dans.lib.error.{CompositeException, _}
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.io.IOUtils
+import org.apache.commons.io.FileUtils.readFileToString
 
-import scala.collection.JavaConverters._
-import scala.util.{ Failure, Success, Try }
-import scala.xml.{ Elem, XML }
+import scala.util.{Failure, Success, Try}
+import scala.xml.{Elem, XML}
 import scalaj.http.Http
-import nl.knaw.dans.lib.error._
 
 package object solr4files extends DebugEnhancedLogging {
 
@@ -60,27 +59,39 @@ package object solr4files extends DebugEnhancedLogging {
 
   implicit class RichURL(val left: URL) {
 
-    def loadXml: Try[Elem] = Try {
-      resource.managed(left.openStream()).acquireAndGet(XML.load) // TODO replace
+    def loadXml: Try[Elem] = {
+      getContent.flatMap(s => Try(XML.loadString(s)))
     }
 
-    def readLines: Try[Seq[String]] = Try {
-      resource.managed(left.openStream()) // TODO replace
-        .acquireAndGet(IOUtils.readLines)
-        .asScala
+    def readLines: Try[Seq[String]] = {
+      getContent.map(_.split("\n"))
     }
 
-    def getContentLength: Long = Try{
-      Http(left.toString).method("HEAD").asString match {
+    private def getContent: Try[String] = {
+      if (left.getProtocol.toLowerCase == "file") {
+        val path = URLDecoder.decode(left.getPath, "UTF8")
+        Try(readFileToString(new File(path), "UTF8"))
+      } else Try(Http(left.toString).method("GET").asString).flatMap {
+        case response if response.isSuccess => Success(response.body)
+        case response => Failure(new Exception(
+          s"getSize($left) ${ response.statusLine }, details: ${ response.body }"
+        ))
+      }
+    }
+
+    def getContentLength: Long = {
+      if (left.getProtocol.toLowerCase == "file")
+        Try(new File(left.getPath).length).getOrElse(-1L)
+      else Try(Http(left.toString).method("HEAD").asString).map {
         case response if !response.isSuccess =>
-          logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
+          logger.warn(s"getSize($left) ${response.statusLine}, details: ${response.body}")
           -1L
         case response =>
           Try(response.headers("content-length").toLong)
-            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e) }
+            .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${e.getMessage}", e) }
             .getOrElse(-1L)
-      }
-    }.getOrElse(-1L)
+      }.getOrElse(-1L)
+    }
   }
 }
 
