@@ -70,7 +70,7 @@ package object solr4files extends DebugEnhancedLogging {
         .asScala
     }
 
-    def getContentLength: Long = {
+    def getContentLength: Long = Try{
       Http(left.toString).method("HEAD").asString match {
         case response if !response.isSuccess =>
           logger.warn(s"getSize($left) ${ response.statusLine }, details: ${ response.body }")
@@ -80,7 +80,7 @@ package object solr4files extends DebugEnhancedLogging {
             .doIfFailure { case e => logger.warn(s"getSize($left) content-length: ${ e.getMessage }", e) }
             .getOrElse(-1L)
       }
-    }
+    }.getOrElse(-1L)
   }
 }
 
