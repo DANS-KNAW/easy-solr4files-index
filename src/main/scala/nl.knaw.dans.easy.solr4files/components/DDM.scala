@@ -107,7 +107,7 @@ object DDM {
     } yield (xml \ "simpleType")
       .map(n => (n.attribute("name").map(_.text).getOrElse(""), findKeyValuePairs(n)))
       .toMap
-  }.getOrElse(Map[String, Map[String, String]]())
+  }.getOrElse(Map.empty)
 
   private def findKeyValuePairs(table: Node): Map[String, String] = {
     (table \\ "enumeration")

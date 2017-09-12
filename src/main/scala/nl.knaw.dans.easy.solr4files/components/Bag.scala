@@ -33,10 +33,10 @@ case class Bag(storeName: String,
     for {
       url <- vault.fileURL(storeName, bagId, "bag-info.txt")
       lines <- url.readLines
-      wantedLines = lines.filter(_.trim.startsWith(key))
-      values = wantedLines.map(_.trim.replace(key, "").trim.replace(":", "").trim)
-      value <- Try(values.head)
-    } yield value
+    } yield lines
+      .filter(_.trim.startsWith(key))
+      .map(_.replace(key, "").replace(":", "").trim)
+      .mkString
   }.getOrElse("")
 
   def fileUrl(path: String): Try[URL] = {
