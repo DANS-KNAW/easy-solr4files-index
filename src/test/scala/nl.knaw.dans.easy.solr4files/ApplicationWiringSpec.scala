@@ -88,8 +88,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
       override def update(store: String, uuid: String) =
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
-    inside(result) { case Failure(WrappedCompositeException(msg, CompositeException(headCause :: _))) =>
-      msg shouldBe "Tried to update 5 bags, 5 exceptions occurred."
+    inside(result) { case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
+      e.getMessage shouldBe "Tried to update 5 bags, 5 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.update"
     }
   }
@@ -100,8 +100,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
       override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
     inside(result) {
-      case Failure(WrappedCompositeException(msg, CompositeException(headCause :: _))) =>
-      msg shouldBe "Tried to update 4 stores, 4 exceptions occurred."
+      case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
+      e.getMessage shouldBe "Tried to update 4 stores, 4 exceptions occurred."
       headCause should have message "stubbed ApplicationWiring.initSingleStore"
     }
   }
