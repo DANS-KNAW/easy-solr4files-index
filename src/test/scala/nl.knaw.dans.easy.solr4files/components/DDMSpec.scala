@@ -54,7 +54,7 @@ class DDMSpec extends TestSupportFixture {
     literals.foreach(expected should contain(_))
   }
 
-  it should "have white space in a one liner creator" in {
+  it should "have white space in a one-liner" in {
     assume(canConnectToEasySchemas)
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
@@ -63,18 +63,11 @@ class DDMSpec extends TestSupportFixture {
         xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
         xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
       <ddm:profile>
-        <dcx-dai:creatorDetails>
-          <dcx-dai:author>
-            <dcx-dai:titles>Captain</dcx-dai:titles><dcx-dai:initials>J.T.</dcx-dai:initials><dcx-dai:surname>Kirk</dcx-dai:surname>
-            <dcx-dai:organization>
-              <dcx-dai:name xml:lang="en">United Federation of Planets</dcx-dai:name>
-            </dcx-dai:organization>
-          </dcx-dai:author>
-        </dcx-dai:creatorDetails>
+        <dcx-dai:creatorDetails><dcx-dai:author><dcx-dai:titles>Captain</dcx-dai:titles><dcx-dai:initials>J.T.</dcx-dai:initials><dcx-dai:surname>Kirk</dcx-dai:surname><dcx-dai:organization><dcx-dai:name xml:lang="en">United Federation of Planets</dcx-dai:name></dcx-dai:organization></dcx-dai:author></dcx-dai:creatorDetails>
       </ddm:profile>
     </ddm:DDM>
     ).solrLiterals.toMap
-    ddmLiterals("dataset_creator").replaceAll("\\s+", " ").trim shouldBe "Captain J.T. Kirk United Federation of Planets"
+    ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
 
 }
