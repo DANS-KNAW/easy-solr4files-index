@@ -8,7 +8,7 @@ easy-update-solr4files-index
 SYNOPSIS
 --------
 
-  easy-update-solr4files-index {add|delete|update} [-s <bag-store>] <uuid>
+  easy-update-solr4files-index {update|delete} [-s <bag-store>] <uuid>
   easy-update-solr4files-index {init} <bag-store>
   easy-update-solr4files-index run-service
 
@@ -55,7 +55,7 @@ ARGUMENTS
 EXAMPLES
 --------
 
-    easy-update-solr4files-index add 9da0541a-d2c8-432e-8129-979a9830b427
+    easy-update-solr4files-index update 9da0541a-d2c8-432e-8129-979a9830b427
 
 
 INSTALLATION AND CONFIGURATION

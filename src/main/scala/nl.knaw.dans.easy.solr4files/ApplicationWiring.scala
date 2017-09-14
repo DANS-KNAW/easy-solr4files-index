@@ -15,13 +15,13 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.{URI, URL}
+import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
-import nl.knaw.dans.lib.error.{CompositeException, TraversableTryExtensions}
+import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.Try
+import scala.util.{ Failure, Try }
 import scala.xml.Elem
 
 /**
@@ -58,12 +58,20 @@ class ApplicationWiring(configuration: Configuration)
       feedbackMessage <- updateFiles(bag, ddm, filesXML)
       _ <- commit()
     } yield feedbackMessage
+  }.recoverWith{ case t =>
+      commit()
+      Failure(t)
   }
 
-  def delete(bagId: String): Try[FeedBackMessage] = for {
-    _ <- deleteBag(bagId)
-    _ <- commit()
-  } yield s"Deleted file documents for bag $bagId"
+  def delete(bagId: String): Try[FeedBackMessage] = {
+    for {
+      _ <- deleteBag(bagId)
+      _ <- commit()
+    } yield s"Deleted file documents for bag $bagId"
+  }.recoverWith{ case t =>
+    commit()
+    Failure(t)
+  }
 
   private def updateStores(storeNames: Seq[String]): Try[Seq[FeedBackMessage]] = {
     storeNames
