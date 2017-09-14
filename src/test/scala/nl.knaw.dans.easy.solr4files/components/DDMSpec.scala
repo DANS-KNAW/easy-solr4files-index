@@ -54,7 +54,7 @@ class DDMSpec extends TestSupportFixture {
     literals.foreach(expected should contain(_))
   }
 
-  ignore should "have white space in a one liner creator" in { // TODO support proper white space for one liners?
+  it should "have white space in a one liner creator" in {
     assume(canConnectToEasySchemas)
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
@@ -74,7 +74,7 @@ class DDMSpec extends TestSupportFixture {
       </ddm:profile>
     </ddm:DDM>
     ).solrLiterals.toMap
-    ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
+    ddmLiterals("dataset_creator").replaceAll("\\s+", " ").trim shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
 
 }

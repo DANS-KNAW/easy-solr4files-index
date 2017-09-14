@@ -1,7 +1,33 @@
-import scala.util.{ Failure, Success }
+import scala.collection.mutable
+import scala.xml._
 
-val stream = Stream(Success(4), Success(5), Success(4), Success(5), Success(4), Failure(new Exception("bla")), Success(1))
-stream
-  .takeWhile(_.isSuccess)
-  .partition(_.get == 4)._1.size
-stream.take(1)
+val x = <div class="content"><a></a><p><q>hello</q></p><r><p>world</p></r><s></s></div>
+
+val s = mutable.ListBuffer[String]()
+def strings(n: Seq[Node]): Unit =
+  n.foreach { x =>
+    if (x.child.nonEmpty) strings(x.child)
+    else {
+      s += x.text
+      strings(x.child)
+    }
+  }
+
+strings(x)
+s.mkString(" ")
+
+
+def spacedText(n: Node): String = {
+  val s = mutable.ListBuffer[String]()
+  def strings(n: Seq[Node]): Unit =
+    n.foreach { x =>
+      if (x.child.nonEmpty) strings(x.child)
+      else {
+        s += x.text
+        strings(x.child)
+      }
+    }
+  strings(n)
+  s.mkString(" ")
+}
+spacedText(x)

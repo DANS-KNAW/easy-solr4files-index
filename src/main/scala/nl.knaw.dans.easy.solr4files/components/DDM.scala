@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.easy.solr4files.{ SolrLiterals, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.collection.mutable
 import scala.util.Try
 import scala.xml.{ Node, NodeSeq }
 
@@ -34,7 +35,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   // lazy postpones loading vocabularies until a file without accessibleTo=none is found
   lazy val solrLiterals: SolrLiterals =
     (dcmiMetadata \ "identifier").withFilter(isDOI).map(n => ("dataset_doi", n.text)) ++
-      (profile \ "creatorDetails").map(n => ("dataset_creator", n.text)) ++
+      (profile \ "creatorDetails").map(n => ("dataset_creator", spacedText(n))) ++
       (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
       (profile \ "title").map(n => ("dataset_title", n.text)) ++
       (profile \ "audience").flatMap(n => Seq(
@@ -94,6 +95,22 @@ object DDM {
   private lazy val audienceMap = loadVocabularies(
     "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
   )("Discipline")
+
+  def spacedText(n: Node): String = {
+    val s = mutable.ListBuffer[String]()
+
+    def strings(n: Seq[Node]): Unit =
+      n.foreach { x =>
+        if (x.child.nonEmpty) strings(x.child)
+        else {
+          s += x.text
+          strings(x.child)
+        }
+      }
+
+    strings(n)
+    s.mkString(" ")
+  }
 
   private def getAbrMap(ddmSubjectNode: Node): Option[Map[String, String]] = {
     ddmSubjectNode
