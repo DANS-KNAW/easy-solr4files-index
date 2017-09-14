@@ -18,10 +18,9 @@ package nl.knaw.dans.easy.solr4files
 import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
-import nl.knaw.dans.lib.error.{ CompositeException, TraversableTryExtensions }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 import scala.xml.Elem
 
 /**
@@ -58,7 +57,9 @@ class ApplicationWiring(configuration: Configuration)
       feedbackMessage <- updateFiles(bag, ddm, filesXML)
       _ <- commit()
     } yield feedbackMessage
-  }.recoverWith{ case t =>
+  }.recoverWith {
+    case t: SolrCommitException => Failure(t)
+    case t =>
       commit()
       Failure(t)
   }
@@ -68,34 +69,59 @@ class ApplicationWiring(configuration: Configuration)
       _ <- deleteBag(bagId)
       _ <- commit()
     } yield s"Deleted file documents for bag $bagId"
-  }.recoverWith{ case t =>
-    commit()
-    Failure(t)
+  }.recoverWith {
+    case t: SolrCommitException => Failure(t)
+    case t =>
+      commit()
+      Failure(t)
   }
 
-  private def updateStores(storeNames: Seq[String]): Try[Seq[FeedBackMessage]] = {
-    storeNames
+  private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
+    val (thrown, results) = storeNames
+      .toStream
       .map(initSingleStore)
-      .collectResults
-      .recoverWith { case t: CompositeException =>
-        throw WrappedCompositeException(s"Tried to update ${ storeNames.size } stores,", t)
-      }
+      .takeUntilFailure
+
+    val stats = s"Updated ${ storeNames.size } stores"
+
+    if (thrown.isEmpty) Success(stats)
+    else if (results.isEmpty) Failure(thrown.get)
+    else {
+      results.foreach(x => logger.info(x))
+      Failure(AnotherFailedException(stats, thrown.get))
+    }
   }
 
-  private def updateBags(storeName: String, bagIds: Seq[String]): Try[Seq[FeedBackMessage]] = {
-    bagIds
+  private def updateBags(storeName: String, bagIds: Seq[String]): Try[FeedBackMessage] = {
+    val (thrown, results) = bagIds
+      .toStream
       .map(uuid => update(storeName, uuid))
-      .collectResults
-      .recoverWith { case t: CompositeException =>
-        throw WrappedCompositeException(s"Tried to update ${ bagIds.size } bags,", t)
-      }
+      .takeUntilFailure
+
+    val stats = s"Updated ${ bagIds.size } bags for $storeName"
+
+    if (thrown.isEmpty) Success(stats)
+    else if (results.isEmpty) Failure(thrown.get)
+    else Failure(AnotherFailedException(stats, thrown.get))
   }
 
-  private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem) = {
-    (filesXML \ "file")
+  private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[FeedBackMessage] = {
+    val (thrown, results) = (filesXML \ "file")
       .map(FileItem(bag, ddm, _))
       .filter(_.shouldIndex)
+      .toStream
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
-      .collectResults(bag.bagId)
+      .takeUntilFailure
+
+    val (withContent, justMetadata) = results.partition(_.isInstanceOf[SubmittedWithContent])
+    val stats = s"Bag ${ bag.bagId }: updated ${ withContent.size } files with content, ${ justMetadata.size } without content"
+
+    if (thrown.isEmpty) Success(stats)
+    else if (results.isEmpty) Failure(thrown.get)
+    else {
+      // SubmittedJustMetadata logged warnings
+      withContent.foreach(x => logger.info(x.solrId))
+      Failure(AnotherFailedException(stats, thrown.get))
+    }
   }
 }

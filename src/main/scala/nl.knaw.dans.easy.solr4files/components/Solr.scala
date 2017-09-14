@@ -22,11 +22,12 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.solr.client.solrj.SolrRequest.METHOD
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
-import org.apache.solr.client.solrj.{SolrClient, SolrQuery}
+import org.apache.solr.client.solrj.response.UpdateResponse
+import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
 import org.apache.solr.common.util.ContentStreamBase
 
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 trait Solr extends DebugEnhancedLogging {
   val solrUrl: URL
@@ -79,7 +80,9 @@ trait Solr extends DebugEnhancedLogging {
     s"deleted $bagId from the index"
   }
 
-  def commit(): Try[Unit] = {
-    Try(solrClient.commit())
+  def commit(): Try[UpdateResponse] = {
+    Try(solrClient.commit()).recoverWith{
+      case t => Failure(SolrCommitException(t))
+    }
   }
 }

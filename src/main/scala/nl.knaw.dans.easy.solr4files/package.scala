@@ -16,16 +16,17 @@
 package nl.knaw.dans.easy
 
 import java.io.File
-import java.net.{URL, URLDecoder}
+import java.net.{ URL, URLDecoder }
 
-import nl.knaw.dans.lib.error.{CompositeException, _}
+import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
 import org.apache.solr.common.util.NamedList
 
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, XML}
-import scalaj.http.{Http, HttpResponse}
+import scala.collection.mutable
+import scala.util.{ Failure, Success, Try }
+import scala.xml.{ Elem, XML }
+import scalaj.http.{ Http, HttpResponse }
 
 package object solr4files extends DebugEnhancedLogging {
 
@@ -33,32 +34,39 @@ package object solr4files extends DebugEnhancedLogging {
   type SolrLiterals = Seq[(String, String)]
   type FileToShaMap = Map[String, String]
 
-  case class WrappedCompositeException(msg: String, cause: CompositeException )
-    extends Exception(s"$msg ${cause.getMessage()}", cause)
+  case class WrappedCompositeException(msg: String, cause: CompositeException)
+    extends Exception(s"$msg ${ cause.getMessage() }", cause)
 
-  case class HttpStatusException(msg: String, response: HttpResponse[String] )
+  case class AnotherFailedException(msg: String, cause: Throwable)
+    extends Exception(s"$msg; ${ cause.getMessage }", cause)
+
+  case class HttpStatusException(msg: String, response: HttpResponse[String])
     extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 
-  case class SolrStatusException(namedList: NamedList[AnyRef] )
+  case class SolrStatusException(namedList: NamedList[AnyRef])
     extends Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }")
 
-  abstract sealed class Submission(solrId: String)
-  case class SubmittedWithContent(solrId: String) extends Submission(solrId)
-  case class SubmittedJustMetadata(solrId: String) extends Submission(solrId){
+  case class SolrCommitException(cause: Throwable)
+    extends Exception(cause.getMessage, cause)
+
+  abstract sealed class Submission(val solrId: String)
+  case class SubmittedWithContent(override val solrId: String) extends Submission(solrId)
+  case class SubmittedJustMetadata(override val solrId: String) extends Submission(solrId) {
     logger.warn(s"Resubmitted $solrId with just metadata")
   }
 
-  implicit class MixedResults(val left: Seq[Try[Submission]]) extends AnyVal {
-    def collectResults(bagId: String): Try[FeedBackMessage] = {
-      val (withContentCount, justMetadataCount, failures) = left.foldRight((0, 0, List.empty[Throwable])) {
-        case (Success(SubmittedWithContent(_)), (withContent, justMetadata, es)) => (withContent + 1, justMetadata, es)
-        case (Success(SubmittedJustMetadata(_)), (withContent, justMetadata, es)) => (withContent, justMetadata + 1, es)
-        case (Failure(e), (withContent, justMetadata, es)) => (withContent, justMetadata, e :: es)
+  implicit class RichTryStream[T](val left: Seq[Try[T]]) extends AnyVal {
+
+    /** Typical usage: val (thrown, results) = ...toStream.map(TrySomething).takeUntilFailure */
+    def takeUntilFailure: (Option[Throwable], Seq[T]) = {
+      val b = mutable.ListBuffer[T]()
+      val it = left.iterator
+      while (it.hasNext) {
+        val x = it.next()
+        if (x.isFailure) return (Some(x.failed.get), b.toList)
+        b += x.get
       }
-      val total = withContentCount + justMetadataCount
-      val stats = s"Bag $bagId: updated $total files, $justMetadataCount of them without content"
-      if (total == left.size) Success(stats)
-      else Failure(WrappedCompositeException(s"$stats, another", CompositeException(failures)))
+      (None,b.toList)
     }
   }
 

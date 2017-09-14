@@ -71,7 +71,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
     assume(canConnectToEasySchemas)
     val result = new MockedAndStubbedWiring().update(store, uuid)
     inside(result) { case Success(msg) =>
-      msg shouldBe s"Bag $uuid: updated 9 files, 2 of them without content"
+      msg shouldBe s"Bag $uuid: updated 7 files with content, 2 without content"
     }
   }
 
@@ -88,10 +88,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
       override def update(store: String, uuid: String) =
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
-    inside(result) { case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
-      e should have message "Tried to update 5 bags, 5 exceptions occurred."
-      headCause should have message "stubbed ApplicationWiring.update"
-    }
+
+    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.update"}
   }
 
   "initAllStores" should "call the stubbed ApplicationWiring.initSingleStore method" in {
@@ -99,11 +97,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
       // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure demonstrates it's called
       override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
-    inside(result) {
-      case Failure(e @ WrappedCompositeException(_, CompositeException(headCause :: _))) =>
-      e should have message "Tried to update 4 stores, 4 exceptions occurred."
-      headCause should have message "stubbed ApplicationWiring.initSingleStore"
-    }
+
+    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.initSingleStore"}
   }
 
   private def createConfig(testDir: String) = {
