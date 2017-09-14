@@ -29,7 +29,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Update the EASY SOLR for Files Index with file data from a bag-store"""
   val synopsis: String =
     s"""
-       |  $printedName {add|delete|update} [-s <bag-store>] <uuid>
+       |  $printedName {update|delete} [-s <bag-store>] <uuid>
        |  $printedName {init} <bag-store>
        |  $printedName run-service
        """.stripMargin
