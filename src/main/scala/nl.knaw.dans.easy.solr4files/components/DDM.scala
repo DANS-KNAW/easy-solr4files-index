@@ -38,36 +38,46 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
       (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
       (profile \ "title").map(n => ("dataset_title", n.text)) ++
       (profile \ "audience").flatMap(n => Seq(
-        ("dataset_narcis_audience", n.text), // TODO https://github.com/DANS-KNAW/easy-dtap/pull/131#pullrequestreview-60582037
-        ("dataset_audience", audienceMap.getOrElse(n.text, ""))
+        ("dataset_audience", n.text),
+        ("dataset_subject", audienceMap.getOrElse(n.text, ""))
       )) ++
       (dcmiMetadata \ "subject").flatMap { n =>
         getAbrMap(n) match {
           case None => Seq(("dataset_subject", n.text))
           case Some(map) if map.isEmpty => Seq(("dataset_subject", n.text))
           case Some(map) => Seq(
-            ("dataset_abr_subject", n.text), // TODO https://github.com/DANS-KNAW/easy-dtap/pull/131#pullrequestreview-60582037
+            ("dataset_subject_abr", n.text),
             ("dataset_subject", map.getOrElse(n.text, ""))
           )
         }
       } ++
-      (dcmiMetadata \ "relation").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "conformsTo").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isVersionOf").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasVersion").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isReplacedBy").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "replaces").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isRequiredBy").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "requires").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isPartOf").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasPart").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isReferencedBy").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "references").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isFormatOf").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasFormat").map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "temporal").map(n => ("dataset_coverage", n.text))
+      (dcmiMetadata \ "temporal").flatMap { n =>
+        getAbrMap(n) match {
+          case None => Seq(("dataset_coverage_temporal", n.text))
+          case Some(map) if map.isEmpty => Seq(("dataset_coverage_temporal", n.text))
+          case Some(map) => Seq(
+            ("dataset_coverage_temporal_abr", n.text),
+            ("dataset_coverage_temporal", map.getOrElse(n.text, ""))
+          )
+        }
+      } ++
+      (dcmiMetadata \ "relation").withFilter(r => !isUrl(r) && !isStreamingSurrogate(r))
+        .map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "conformsTo").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isVersionOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "hasVersion").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isReplacedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "replaces").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isRequiredBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "requires").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isPartOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "hasPart").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isReferencedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "references").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "isFormatOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+      (dcmiMetadata \ "hasFormat").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text))
   // TODO spatial https://github.com/DANS-KNAW/easy-schema/blob/acb6506/src/main/assembly/dist/docs/examples/ddm/example2.xml#L280-L320
-  // TODO   "dataset_coverage" -> (dcmiMetadata \ "spatial").text,
+  // TODO   "dataset_coverage_spatial" -> (dcmiMetadata \ "spatial").text,
 }
 
 object DDM {
@@ -98,6 +108,17 @@ object DDM {
       .attribute(xsiURI, "type")
       .map(_.text)
       .contains("id-type:DOI")
+  }
+
+  private def isStreamingSurrogate(relation: Node) = {
+    relation
+      .attribute("scheme")
+      .map(_.text)
+      .contains("STREAMING_SURROGATE_RELATION")
+  }
+
+  private def isUrl(relation: Node) = {
+    Try(new URL(relation.text)).isSuccess
   }
 
   private def loadVocabularies(xsdURL: String): Map[String, Map[String, String]] = {

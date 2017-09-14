@@ -33,19 +33,18 @@ class DDMSpec extends TestSupportFixture {
       .filter { case (_, v) => !v.isEmpty }
     val expected = Seq(
       ("dataset_doi", "10.5072/dans-x6g-x2hb"),
-      ("dataset_narcis_audience", "D30000"),
-      ("dataset_audience", "Humanities"),
-      ("dataset_relation", "/domain/dans/user/janvanmansum/collection/Jans-test-files/presentation/easy-dataset:14"),
-      ("dataset_relation", "http://x"),
+      ("dataset_audience", "D30000"),
+      ("dataset_subject", "Humanities"),
       ("dataset_relation", "dummy"),
       ("dataset_relation", "blabla"),
-      ("dataset_coverage", "random text"),
+      ("dataset_coverage_temporal", "random text"),
       ("dataset_creator", "Captain J.T. Kirk United Federation of Planets"),
       ("dataset_subject", "astronomie"),
       ("dataset_subject", "ruimtevaart"),
-      ("dataset_abr_subject", "IX"),
-      ("dataset_coverage", "PALEOLB"),
+      ("dataset_subject_abr", "IX"),
       ("dataset_subject", "Infrastructuur, onbepaald"),
+      ("dataset_coverage_temporal_abr", "PALEOLB"),
+      ("dataset_coverage_temporal", "Paleolithicum laat B: 18000 C14 -8800 vC"),
       ("dataset_title", "Reis naar Centaur-planetoïde"),
       ("dataset_title", "Trip to Centaur asteroid")
     )
