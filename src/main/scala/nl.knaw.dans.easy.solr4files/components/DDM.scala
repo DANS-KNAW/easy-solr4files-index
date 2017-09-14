@@ -96,18 +96,14 @@ object DDM {
     "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
   )("Discipline")
 
-  def spacedText(n: Node): String = {
+  def spacedText(n: Seq[Node]): String = {
     val s = mutable.ListBuffer[String]()
 
     def strings(n: Seq[Node]): Unit =
       n.foreach { x =>
         if (x.child.nonEmpty) strings(x.child)
-        else {
-          s += x.text
-          strings(x.child)
-        }
+        else s += x.text
       }
-
     strings(n)
     s.mkString(" ")
   }
