@@ -18,7 +18,6 @@ package nl.knaw.dans.easy.solr4files
 import java.net.URLEncoder
 import java.nio.file.Paths
 
-import nl.knaw.dans.lib.error.CompositeException
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
@@ -71,7 +70,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
     assume(canConnectToEasySchemas)
     val result = new MockedAndStubbedWiring().update(store, uuid)
     inside(result) { case Success(msg) =>
-      msg shouldBe s"Bag $uuid: updated 7 files with content, 2 without content"
+      msg shouldBe s"Bag $uuid: 7 times FilesSubmittedWithContent, 2 times FilesSubmittedWithJustMetadata"
     }
   }
 

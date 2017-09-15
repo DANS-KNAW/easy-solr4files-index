@@ -82,7 +82,7 @@ class ApplicationWiring(configuration: Configuration)
       case (None, _) => Success(stats)
       case (Some(t), Seq()) => Failure(t)
       case (Some(t), results) =>
-        results.foreach(x => logger.info(x))
+        results.foreach(msg => logger.info(msg))
         Failure(SomeSucceededException(stats, t))
     }
   }
@@ -90,29 +90,29 @@ class ApplicationWiring(configuration: Configuration)
   private def updateBags(storeName: String, bagIds: Seq[String]): Try[FeedBackMessage] = {
     lazy val stats = s"Updated ${ bagIds.size } bags for $storeName"
     bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
-      case (None, _) => Success(stats)
       case (Some(t), Seq()) => Failure(t)
       case (Some(t), _) => Failure(SomeSucceededException(stats, t))
+      case (None, results) =>
+        results.foreach(msg => logger.info(msg))
+        Success(stats)
     }
   }
 
   private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[FeedBackMessage] = {
-    val (thrown, results) = (filesXML \ "file")
+    lazy val statsPrefix = s"Bag ${bag.bagId}: "
+    (filesXML \ "file")
       .map(FileItem(bag, ddm, _))
       .filter(_.shouldIndex)
       .toStream
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
-      .takeUntilFailure
-
-    val (withContent, justMetadata) = results.partition(_.isInstanceOf[SubmittedWithContent])
-    val stats = s"Bag ${ bag.bagId }: updated ${ withContent.size } files with content, ${ justMetadata.size } without content"
-
-    if (thrown.isEmpty) Success(stats)
-    else if (results.isEmpty) Failure(thrown.get)
-    else {
-      // SubmittedJustMetadata logged warnings
-      withContent.foreach(x => logger.info(x.solrId))
-      Failure(SomeSucceededException(stats, thrown.get))
-    }
+      .takeUntilFailure match {
+        case (Some(t), Seq()) => Failure(t)
+        case (None, results) => Success(statsPrefix + results.stats)
+        case (Some(t), results) =>
+          results // FilesSubmittedWithJustMetadata logged warnings
+            .withFilter(_.isInstanceOf[FilesSubmittedWithContent])
+            .foreach(x => logger.info(x.toString))
+          Failure(MixedResultsException(statsPrefix, results, t))
+      }
   }
 }

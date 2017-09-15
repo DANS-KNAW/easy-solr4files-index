@@ -18,7 +18,7 @@ package nl.knaw.dans.easy
 import java.io.File
 import java.net.{ URL, URLDecoder }
 
-import nl.knaw.dans.lib.error.{ CompositeException, _ }
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
 import org.apache.solr.common.util.NamedList
@@ -35,9 +35,6 @@ package object solr4files extends DebugEnhancedLogging {
   type FileToShaMap = Map[String, String]
   type VocabularyMap = Map[String, String]
 
-  case class SomeSucceededException(msg: String, cause: Throwable)
-    extends Exception(s"$msg; ${ cause.getMessage }", cause)
-
   case class HttpStatusException(msg: String, response: HttpResponse[String])
     extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 
@@ -47,10 +44,24 @@ package object solr4files extends DebugEnhancedLogging {
   case class SolrCommitException(cause: Throwable)
     extends Exception(cause.getMessage, cause)
 
-  abstract sealed class Submission(val solrId: String)
-  case class SubmittedWithContent(override val solrId: String) extends Submission(solrId)
-  case class SubmittedJustMetadata(override val solrId: String) extends Submission(solrId) {
+  // TODO more feedback classes to replace this with MixedResultsException
+  case class SomeSucceededException(msg: String, cause: Throwable)
+    extends Exception(s"$msg; ${ cause.getMessage }", cause)
+
+  case class MixedResultsException(prefix: String, results: Seq[SubmissionFeedback], thrown: Throwable)
+    extends Exception(prefix + results.stats, thrown)
+
+  abstract sealed class SubmissionFeedback(val solrId: String)
+  case class FilesSubmittedWithContent(override val solrId: String) extends SubmissionFeedback(solrId)
+  case class FilesSubmittedWithJustMetadata(override val solrId: String) extends SubmissionFeedback(solrId) {
     logger.warn(s"Resubmitted $solrId with just metadata")
+  }
+
+  implicit class RichFeedbackSeq(val left: Seq[SubmissionFeedback]) extends AnyVal {
+    def stats: String = {
+      val xs = left.groupBy(_.getClass.getSimpleName)
+      xs.keySet.map(className => s"${xs(className).size} times $className").mkString(", ")
+    }
   }
 
   val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
