@@ -33,6 +33,10 @@ class DDMSpec extends TestSupportFixture {
       .filter { case (_, v) => !v.isEmpty }
     val expected = Seq(
       ("dataset_doi", "10.5072/dans-x6g-x2hb"),
+      ("dataset_identifier", "URN urn:nbn:nl:ui:13-7vca-i7"),
+      ("dataset_identifier","ARCHIS-ZAAK-IDENTIFICATIE 6663"),
+      ("dataset_identifier", "easy-dataset:14"),
+      ("dataset_identifier", "ds1"),
       ("dataset_audience", "D30000"),
       ("dataset_subject", "Humanities"),
       ("dataset_relation", "dummy"),
@@ -69,5 +73,4 @@ class DDMSpec extends TestSupportFixture {
     ).solrLiterals.toMap
     ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
-
 }

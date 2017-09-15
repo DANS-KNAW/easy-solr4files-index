@@ -35,6 +35,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   // lazy postpones loading vocabularies until a file without accessibleTo=none is found
   lazy val solrLiterals: SolrLiterals =
     (dcmiMetadata \ "identifier").withFilter(isDOI).map(n => ("dataset_doi", n.text)) ++
+      (dcmiMetadata \ "identifier").withFilter(n => !isDOI(n)).map(n => ("dataset_identifier", typedID(n))) ++
       (profile \ "creatorDetails").map(n => ("dataset_creator", spacedText(n))) ++
       (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
       (profile \ "title").map(n => ("dataset_title", n.text)) ++
@@ -96,7 +97,11 @@ object DDM {
     "https://easy.dans.knaw.nl/schemas/vocab/2015/narcis-type.xsd"
   )("Discipline")
 
-  def spacedText(n: Seq[Node]): String = {
+  private def typedID(n: Node) = {
+    n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:","") + " " + n.text
+  }
+
+  private def spacedText(n: Node): String = {
     val s = mutable.ListBuffer[String]()
 
     def strings(n: Seq[Node]): Unit =
@@ -139,9 +144,13 @@ object DDM {
       url <- Try(new URL(xsdURL))
       xml <- url.loadXml
     } yield (xml \ "simpleType")
-      .map(n => (n.attribute("name").map(_.text).getOrElse(""), findKeyValuePairs(n)))
+      .map(n => (mapName(n), findKeyValuePairs(n)))
       .toMap
   }.getOrElse(Map.empty)
+
+  private def mapName(n: Node) = {
+    n.attribute("name").map(_.text).getOrElse("")
+  }
 
   private def findKeyValuePairs(table: Node): Map[String, String] = {
     (table \\ "enumeration")
