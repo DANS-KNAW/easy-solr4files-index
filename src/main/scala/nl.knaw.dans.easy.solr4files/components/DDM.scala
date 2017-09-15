@@ -21,6 +21,7 @@ import nl.knaw.dans.easy.solr4files._
 import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.Try
 import scala.xml.{ Node, NodeSeq }
@@ -113,17 +114,17 @@ object DDM {
   }
 
 
-  def nestedText(n: Node, solrField: String): (String, String) = {
-    val s = mutable.ListBuffer[String]()
+  def nestedText(ns: Seq[Node], solrField: String): (String, String) = {
 
-    def strings(n: Seq[Node]): Unit =
-      n.foreach { x =>
-        if (x.child.nonEmpty) strings(x.child)
-        else s += x.text
+    @tailrec
+    def internal(todo: Seq[Node] = ns, result: List[String] = List.empty): List[String] = {
+      todo match {
+        case Seq() => result
+        case Seq(h, t@_*) if h.child.isEmpty => internal(t, h.text :: result)
+        case Seq(h, t@_*) => internal(h.child ++ t, result)
       }
-
-    strings(n)
-    (solrField, s.mkString(" "))
+    }
+    (solrField, internal().reverse.mkString(" "))
   }
 
   private def loadVocabularies(xsdURL: String): Map[String, VocabularyMap] = {

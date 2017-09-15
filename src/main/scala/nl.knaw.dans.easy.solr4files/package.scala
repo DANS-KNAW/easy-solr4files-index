@@ -89,9 +89,10 @@ package object solr4files extends DebugEnhancedLogging {
       val b = mutable.ListBuffer[T]()
       val it = left.iterator
       while (it.hasNext) {
-        val x = it.next()
-        if (x.isFailure) return (Some(x.failed.get), b.toList)
-        b += x.get
+        it.next() match {
+          case Success(y) => b += y
+          case Failure(t) => return (Some(t), b.toList)
+        }
       }
       (None, b.toList)
     }
