@@ -35,10 +35,7 @@ package object solr4files extends DebugEnhancedLogging {
   type FileToShaMap = Map[String, String]
   type VocabularyMap = Map[String, String]
 
-  case class WrappedCompositeException(msg: String, cause: CompositeException)
-    extends Exception(s"$msg ${ cause.getMessage() }", cause)
-
-  case class AnotherFailedException(msg: String, cause: Throwable)
+  case class SomeSucceededException(msg: String, cause: Throwable)
     extends Exception(s"$msg; ${ cause.getMessage }", cause)
 
   case class HttpStatusException(msg: String, response: HttpResponse[String])

@@ -83,7 +83,7 @@ class ApplicationWiring(configuration: Configuration)
       case (Some(t), Seq()) => Failure(t)
       case (Some(t), results) =>
         results.foreach(x => logger.info(x))
-        Failure(AnotherFailedException(stats, t))
+        Failure(SomeSucceededException(stats, t))
     }
   }
 
@@ -92,7 +92,7 @@ class ApplicationWiring(configuration: Configuration)
     bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
       case (None, _) => Success(stats)
       case (Some(t), Seq()) => Failure(t)
-      case (Some(t), _) => Failure(AnotherFailedException(stats, t))
+      case (Some(t), _) => Failure(SomeSucceededException(stats, t))
     }
   }
 
@@ -112,7 +112,7 @@ class ApplicationWiring(configuration: Configuration)
     else {
       // SubmittedJustMetadata logged warnings
       withContent.foreach(x => logger.info(x.solrId))
-      Failure(AnotherFailedException(stats, thrown.get))
+      Failure(SomeSucceededException(stats, thrown.get))
     }
   }
 }
