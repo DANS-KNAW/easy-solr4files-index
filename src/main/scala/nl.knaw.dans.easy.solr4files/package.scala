@@ -18,7 +18,6 @@ package nl.knaw.dans.easy
 import java.io.File
 import java.net.{ URL, URLDecoder }
 
-import nl.knaw.dans.easy.solr4files.components.DDM.xsiURI
 import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
@@ -34,6 +33,7 @@ package object solr4files extends DebugEnhancedLogging {
   type FeedBackMessage = String
   type SolrLiterals = Seq[(String, String)]
   type FileToShaMap = Map[String, String]
+  type VocabularyMap = Map[String, String]
 
   case class WrappedCompositeException(msg: String, cause: CompositeException)
     extends Exception(s"$msg ${ cause.getMessage() }", cause)
@@ -64,6 +64,10 @@ package object solr4files extends DebugEnhancedLogging {
       left.attribute(xsiURI, "type")
         .map(_.text)
         .contains(t)
+    }
+
+    def hasNoType: Boolean = {
+      left.attribute(xsiURI, "type").isEmpty
     }
   }
 

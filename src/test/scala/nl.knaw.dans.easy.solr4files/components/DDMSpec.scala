@@ -64,8 +64,7 @@ class DDMSpec extends TestSupportFixture {
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
         xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
-        xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
+        xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/">
       <ddm:profile>
         <dcx-dai:creatorDetails><dcx-dai:author><dcx-dai:titles>Captain</dcx-dai:titles><dcx-dai:initials>J.T.</dcx-dai:initials><dcx-dai:surname>Kirk</dcx-dai:surname><dcx-dai:organization><dcx-dai:name xml:lang="en">United Federation of Planets</dcx-dai:name></dcx-dai:organization></dcx-dai:author></dcx-dai:creatorDetails>
       </ddm:profile>
@@ -94,8 +93,7 @@ class DDMSpec extends TestSupportFixture {
     val ddmLiterals = new DDM(<ddm:DDM
         xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
         xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
       <ddm:dcmiMetadata>
         <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
           <Point xmlns="http://www.opengis.net/gml">
@@ -113,6 +111,25 @@ class DDMSpec extends TestSupportFixture {
       "Entrance of DANS Building",
       "Data Archiving and Networked Services (DANS)",
       "name=Western Australia; northlimit=-13.5; southlimit=-35.5; westlimit=112.5; eastlimit=129"
+    )
+  }
+
+  it should "create simple coverage" in {
+    assume(canConnectToEasySchemas)
+    val ddmLiterals = new DDM(<ddm:DDM
+        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
+        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <ddm:dcmiMetadata>
+        <dc:coverage>Dekking</dc:coverage>
+        <dcterms:coverage>meer dekking</dcterms:coverage>
+      </ddm:dcmiMetadata>
+    </ddm:DDM>
+    ).solrLiterals
+    ddmLiterals.toMap.keys shouldBe Set("dataset_coverage")
+    ddmLiterals.map{case (k,v) => v} should contain theSameElementsAs Seq(
+      "Dekking",
+      "meer dekking"
     )
   }
 }
