@@ -47,7 +47,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
     (dcmiMetadata \ "subject").flatMap(maybeAbr(_, "dataset_subject")) ++
     (dcmiMetadata \ "temporal").flatMap(maybeAbr(_, "dataset_coverage_temporal")) ++
     (dcmiMetadata \ "coverage").withFilter(_.hasType("dct:Period")).map(simlpeText(_, "dataset_coverage_temporal")) ++
-    (dcmiMetadata \ "coverage").withFilter(!_.hasNoType).map(simlpeText(_, "dataset_coverage")) ++
+    (dcmiMetadata \ "coverage").withFilter(_.hasNoType).map(simlpeText(_, "dataset_coverage")) ++
     (dcmiMetadata \ "spatial" \\ "description").map(simlpeText(_, "dataset_coverage_spatial")) ++
     (dcmiMetadata \ "spatial" \\ "name").map(simlpeText(_, "dataset_coverage_spatial")) ++
     (dcmiMetadata \ "spatial").withFilter(_.hasType("dcterms:Box")).map(simlpeText(_, "dataset_coverage_spatial")) ++
