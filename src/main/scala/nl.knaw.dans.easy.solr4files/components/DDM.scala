@@ -17,8 +17,8 @@ package nl.knaw.dans.easy.solr4files.components
 
 import java.net.URL
 
-import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.easy.solr4files._
+import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.collection.mutable
@@ -35,23 +35,23 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   // lazy postpones loading vocabularies until a file without accessibleTo=none is found
   // all the xpath handling might be expensive too
   lazy val solrLiterals: SolrLiterals = Seq.empty ++ // empty for code formatting
-    (profile \ "title").map(n => ("dataset_title", n.text)) ++
-    (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
-    (profile \ "creatorDetails").map(n => ("dataset_creator", spacedText(n))) ++
-    (dcmiMetadata \ "identifier").withFilter(_.hasType("id-type:DOI")).map(n => ("dataset_doi", n.text)) ++
-    (dcmiMetadata \ "identifier").withFilter(!_.hasType("id-type:DOI")).map(n => ("dataset_identifier", typedID(n))) ++
+    (profile \ "title").map(simlpeText(_, "dataset_title")) ++
+    (profile \ "creator").map(simlpeText(_, "dataset_creator")) ++
+    (profile \ "creatorDetails").map(nestedText(_, "dataset_creator")) ++
+    (dcmiMetadata \ "identifier").withFilter(_.hasType("id-type:DOI")).map(simlpeText(_, "dataset_doi")) ++
+    (dcmiMetadata \ "identifier").withFilter(!_.hasType("id-type:DOI")).map(typedID(_, "dataset_identifier")) ++
     (profile \ "audience").flatMap(n => Seq(
       ("dataset_audience", n.text),
       ("dataset_subject", audienceMap.getOrElse(n.text, ""))
     )) ++
     (dcmiMetadata \ "subject").flatMap(maybeAbr(_, "dataset_subject")) ++
     (dcmiMetadata \ "temporal").flatMap(maybeAbr(_, "dataset_coverage_temporal")) ++
-    (dcmiMetadata \ "coverage").withFilter(_.hasType("dct:Period")).map(n => ("dataset_coverage_temporal", n.text)) ++
-    (dcmiMetadata \ "coverage").withFilter(_.hasNoType).map(n => ("dataset_coverage", n.text)) ++
-    (dcmiMetadata \ "spatial" \\ "description").map(n => ("dataset_coverage_spatial", n.text)) ++
-    (dcmiMetadata \ "spatial" \\ "name").map(n => ("dataset_coverage_spatial", n.text)) ++
-    (dcmiMetadata \ "spatial").withFilter(_.hasType("dcterms:Box")).map(n => ("dataset_coverage_spatial", n.text)) ++
-    (dcmiMetadata \ "relation").withFilter(r => !isUrl(r) && !isStreamingSurrogate(r)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "coverage").withFilter(_.hasType("dct:Period")).map(simlpeText(_, "dataset_coverage_temporal")) ++
+    (dcmiMetadata \ "coverage").withFilter(!_.hasNoType).map(simlpeText(_, "dataset_coverage")) ++
+    (dcmiMetadata \ "spatial" \\ "description").map(simlpeText(_, "dataset_coverage_spatial")) ++
+    (dcmiMetadata \ "spatial" \\ "name").map(simlpeText(_, "dataset_coverage_spatial")) ++
+    (dcmiMetadata \ "spatial").withFilter(_.hasType("dcterms:Box")).map(simlpeText(_, "dataset_coverage_spatial")) ++
+    (dcmiMetadata \ "relation").withFilter(r => !r.isUrl && !r.isStreamingSurrogate).map(simlpeText(_, "dataset_relation")) ++
     qualifiedRelation("conformsTo") ++
     qualifiedRelation("isVersionOf") ++
     qualifiedRelation("hasVersion") ++
@@ -69,9 +69,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   // TODO complex spatial https://github.com/DANS-KNAW/easy-schema/blob/acb6506/src/main/assembly/dist/docs/examples/ddm/example2.xml#L280-L320
 
   private def qualifiedRelation(qualifier: String): SolrLiterals = {
-    (dcmiMetadata \ qualifier)
-      .withFilter(!isUrl(_))
-      .map(n => ("dataset_relation", n.text))
+    (dcmiMetadata \ qualifier).withFilter(!_.isUrl).map(simlpeText(_, "dataset_relation"))
   }
 }
 
@@ -106,11 +104,16 @@ object DDM {
     }
   }
 
-  private def typedID(n: Node): String = {
-    n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:", "") + " " + n.text
+  def typedID(n: Node, solrField: String): (String, String) = {
+    (solrField, n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:", "") + " " + n.text)
   }
 
-  private def spacedText(n: Node): String = {
+  def simlpeText(n: Node, solrField: String): (String, String) = {
+    (solrField, n.text)
+  }
+
+
+  def nestedText(n: Node, solrField: String): (String, String) = {
     val s = mutable.ListBuffer[String]()
 
     def strings(n: Seq[Node]): Unit =
@@ -118,19 +121,9 @@ object DDM {
         if (x.child.nonEmpty) strings(x.child)
         else s += x.text
       }
+
     strings(n)
-    s.mkString(" ")
-  }
-
-  private def isStreamingSurrogate(relation: Node) = {
-    relation
-      .attribute("scheme")
-      .map(_.text)
-      .contains("STREAMING_SURROGATE_RELATION")
-  }
-
-  private def isUrl(relation: Node) = {
-    Try(new URL(relation.text)).isSuccess
+    (solrField, s.mkString(" "))
   }
 
   private def loadVocabularies(xsdURL: String): Map[String, VocabularyMap] = {

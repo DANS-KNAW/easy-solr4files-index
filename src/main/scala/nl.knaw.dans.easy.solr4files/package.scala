@@ -69,6 +69,17 @@ package object solr4files extends DebugEnhancedLogging {
     def hasNoType: Boolean = {
       left.attribute(xsiURI, "type").isEmpty
     }
+
+    def isStreamingSurrogate: Boolean = {
+      left
+        .attribute("scheme")
+        .map(_.text)
+        .contains("STREAMING_SURROGATE_RELATION")
+    }
+
+    def isUrl: Boolean = {
+      Try(new URL(left.text)).isSuccess
+    }
   }
 
   implicit class RichTryStream[T](val left: Seq[Try[T]]) extends AnyVal {
@@ -82,7 +93,7 @@ package object solr4files extends DebugEnhancedLogging {
         if (x.isFailure) return (Some(x.failed.get), b.toList)
         b += x.get
       }
-      (None,b.toList)
+      (None, b.toList)
     }
   }
 
