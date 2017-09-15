@@ -73,4 +73,19 @@ class DDMSpec extends TestSupportFixture {
     ).solrLiterals.toMap
     ddmLiterals("dataset_creator") shouldBe "Captain J.T. Kirk United Federation of Planets"
   }
+
+  it should "create coverage_temporal from <dc:coverage xsi:type='dct:Period'>" in {
+    assume(canConnectToEasySchemas)
+    val ddmLiterals = new DDM(<ddm:DDM
+        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
+        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
+      <ddm:dcmiMetadata>
+        <dc:coverage xsi:type="dct:Period">name=The Great Depression; start=1929; end=1939;</dc:coverage>
+      </ddm:dcmiMetadata>
+    </ddm:DDM>
+    ).solrLiterals.toMap
+    ddmLiterals("dataset_coverage_temporal") shouldBe "name=The Great Depression; start=1929; end=1939;"
+  }
 }

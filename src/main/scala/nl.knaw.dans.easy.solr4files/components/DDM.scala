@@ -53,6 +53,7 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
           )
         }
       } ++
+      (dcmiMetadata \ "coverage").withFilter(isDctPeriod).map(n => ("dataset_coverage_temporal", n.text)) ++
       (dcmiMetadata \ "temporal").flatMap { n =>
         getAbrMap(n) match {
           case None => Seq(("dataset_coverage_temporal", n.text))
@@ -98,7 +99,7 @@ object DDM {
   )("Discipline")
 
   private def typedID(n: Node) = {
-    n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:","") + " " + n.text
+    n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:", "") + " " + n.text
   }
 
   private def spacedText(n: Node): String = {
@@ -109,6 +110,7 @@ object DDM {
         if (x.child.nonEmpty) strings(x.child)
         else s += x.text
       }
+
     strings(n)
     s.mkString(" ")
   }
@@ -126,6 +128,13 @@ object DDM {
       .attribute(xsiURI, "type")
       .map(_.text)
       .contains("id-type:DOI")
+  }
+
+  private def isDctPeriod(coverageNode: Node) = {
+    coverageNode
+      .attribute(xsiURI, "type")
+      .map(_.text)
+      .contains("dct:Period")
   }
 
   private def isStreamingSurrogate(relation: Node) = {
