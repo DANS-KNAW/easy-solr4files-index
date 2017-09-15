@@ -60,7 +60,7 @@ class ApplicationWiring(configuration: Configuration)
   }.recoverWith {
     case t: SolrCommitException => Failure(t)
     case t =>
-      commit()
+      commit() // TODO failure gets lost https://github.com/DANS-KNAW/easy-update-solr4files-index/pull/1#discussion_r138947899
       Failure(t)
   }
 
@@ -77,32 +77,23 @@ class ApplicationWiring(configuration: Configuration)
   }
 
   private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
-    val (thrown, results) = storeNames
-      .toStream
-      .map(initSingleStore)
-      .takeUntilFailure
-
-    val stats = s"Updated ${ storeNames.size } stores"
-
-    if (thrown.isEmpty) Success(stats)
-    else if (results.isEmpty) Failure(thrown.get)
-    else {
-      results.foreach(x => logger.info(x))
-      Failure(AnotherFailedException(stats, thrown.get))
+    lazy val stats = s"Updated ${ storeNames.size } stores"
+    storeNames.toStream.map(initSingleStore).takeUntilFailure match {
+      case (None, _) => Success(stats)
+      case (Some(t), Seq()) => Failure(t)
+      case (Some(t), results) =>
+        results.foreach(x => logger.info(x))
+        Failure(AnotherFailedException(stats, t))
     }
   }
 
   private def updateBags(storeName: String, bagIds: Seq[String]): Try[FeedBackMessage] = {
-    val (thrown, results) = bagIds
-      .toStream
-      .map(uuid => update(storeName, uuid))
-      .takeUntilFailure
-
-    val stats = s"Updated ${ bagIds.size } bags for $storeName"
-
-    if (thrown.isEmpty) Success(stats)
-    else if (results.isEmpty) Failure(thrown.get)
-    else Failure(AnotherFailedException(stats, thrown.get))
+    lazy val stats = s"Updated ${ bagIds.size } bags for $storeName"
+    bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
+      case (None, _) => Success(stats)
+      case (Some(t), Seq()) => Failure(t)
+      case (Some(t), _) => Failure(AnotherFailedException(stats, t))
+    }
   }
 
   private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[FeedBackMessage] = {
