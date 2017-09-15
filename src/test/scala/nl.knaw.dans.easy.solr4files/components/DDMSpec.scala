@@ -88,4 +88,31 @@ class DDMSpec extends TestSupportFixture {
     ).solrLiterals.toMap
     ddmLiterals("dataset_coverage_temporal") shouldBe "name=The Great Depression; start=1929; end=1939;"
   }
+
+  it should "create coverage_spatial from descriptions and names>" in {
+    assume(canConnectToEasySchemas)
+    val ddmLiterals = new DDM(<ddm:DDM
+        xsi:schemaLocation="http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
+        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
+      <ddm:dcmiMetadata>
+        <dcx-gml:spatial srsName="http://www.opengis.net/def/crs/EPSG/0/28992">
+          <Point xmlns="http://www.opengis.net/gml">
+            <description>Entrance of DANS Building</description>
+            <name>Data Archiving and Networked Services (DANS)</name>
+            <pos>83575.4 455271.2 1.12</pos>
+          </Point>
+        </dcx-gml:spatial>
+        <dcterms:spatial xsi:type="dcterms:Box">name=Western Australia; northlimit=-13.5; southlimit=-35.5; westlimit=112.5; eastlimit=129</dcterms:spatial>
+      </ddm:dcmiMetadata>
+    </ddm:DDM>
+    ).solrLiterals
+    ddmLiterals.toMap.keys shouldBe Set("dataset_coverage_spatial")
+    ddmLiterals.map{case (k,v) => v} should contain theSameElementsAs Seq(
+      "Entrance of DANS Building",
+      "Data Archiving and Networked Services (DANS)",
+      "name=Western Australia; northlimit=-13.5; southlimit=-35.5; westlimit=112.5; eastlimit=129"
+    )
+  }
 }

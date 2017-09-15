@@ -18,6 +18,7 @@ package nl.knaw.dans.easy
 import java.io.File
 import java.net.{ URL, URLDecoder }
 
+import nl.knaw.dans.easy.solr4files.components.DDM.xsiURI
 import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.io.FileUtils.readFileToString
@@ -25,7 +26,7 @@ import org.apache.solr.common.util.NamedList
 
 import scala.collection.mutable
 import scala.util.{ Failure, Success, Try }
-import scala.xml.{ Elem, XML }
+import scala.xml.{ Elem, Node, XML }
 import scalaj.http.{ Http, HttpResponse }
 
 package object solr4files extends DebugEnhancedLogging {
@@ -53,6 +54,17 @@ package object solr4files extends DebugEnhancedLogging {
   case class SubmittedWithContent(override val solrId: String) extends Submission(solrId)
   case class SubmittedJustMetadata(override val solrId: String) extends Submission(solrId) {
     logger.warn(s"Resubmitted $solrId with just metadata")
+  }
+
+  val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
+
+  implicit class RichNode(val left: Node) extends AnyVal {
+
+    def hasType(t: String): Boolean = {
+      left.attribute(xsiURI, "type")
+        .map(_.text)
+        .contains(t)
+    }
   }
 
   implicit class RichTryStream[T](val left: Seq[Try[T]]) extends AnyVal {

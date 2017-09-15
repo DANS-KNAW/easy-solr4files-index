@@ -33,59 +33,59 @@ class DDM(xml: Node) extends DebugEnhancedLogging {
   val accessRights: String = (profile \ "accessRights").text
 
   // lazy postpones loading vocabularies until a file without accessibleTo=none is found
-  lazy val solrLiterals: SolrLiterals =
-    (dcmiMetadata \ "identifier").withFilter(isDOI).map(n => ("dataset_doi", n.text)) ++
-      (dcmiMetadata \ "identifier").withFilter(n => !isDOI(n)).map(n => ("dataset_identifier", typedID(n))) ++
-      (profile \ "creatorDetails").map(n => ("dataset_creator", spacedText(n))) ++
-      (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
-      (profile \ "title").map(n => ("dataset_title", n.text)) ++
-      (profile \ "audience").flatMap(n => Seq(
-        ("dataset_audience", n.text),
-        ("dataset_subject", audienceMap.getOrElse(n.text, ""))
-      )) ++
-      (dcmiMetadata \ "subject").flatMap { n =>
-        getAbrMap(n) match {
-          case None => Seq(("dataset_subject", n.text))
-          case Some(map) if map.isEmpty => Seq(("dataset_subject", n.text))
-          case Some(map) => Seq(
-            ("dataset_subject_abr", n.text),
-            ("dataset_subject", map.getOrElse(n.text, ""))
-          )
-        }
-      } ++
-      (dcmiMetadata \ "coverage").withFilter(isDctPeriod).map(n => ("dataset_coverage_temporal", n.text)) ++
-      (dcmiMetadata \ "temporal").flatMap { n =>
-        getAbrMap(n) match {
-          case None => Seq(("dataset_coverage_temporal", n.text))
-          case Some(map) if map.isEmpty => Seq(("dataset_coverage_temporal", n.text))
-          case Some(map) => Seq(
-            ("dataset_coverage_temporal_abr", n.text),
-            ("dataset_coverage_temporal", map.getOrElse(n.text, ""))
-          )
-        }
-      } ++
-      (dcmiMetadata \ "relation").withFilter(r => !isUrl(r) && !isStreamingSurrogate(r))
-        .map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "conformsTo").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isVersionOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasVersion").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isReplacedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "replaces").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isRequiredBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "requires").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isPartOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasPart").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isReferencedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "references").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "isFormatOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
-      (dcmiMetadata \ "hasFormat").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text))
-  // TODO spatial https://github.com/DANS-KNAW/easy-schema/blob/acb6506/src/main/assembly/dist/docs/examples/ddm/example2.xml#L280-L320
-  // TODO   "dataset_coverage_spatial" -> (dcmiMetadata \ "spatial").text,
+  lazy val solrLiterals: SolrLiterals = Seq.empty ++ // empty for code formatting
+    (dcmiMetadata \ "identifier").withFilter(_.hasType("id-type:DOI")).map(n => ("dataset_doi", n.text)) ++
+    (dcmiMetadata \ "identifier").withFilter(!_.hasType("id-type:DOI")).map(n => ("dataset_identifier", typedID(n))) ++
+    (profile \ "creatorDetails").map(n => ("dataset_creator", spacedText(n))) ++
+    (profile \ "creator").map(n => ("dataset_creator", n.text)) ++
+    (profile \ "title").map(n => ("dataset_title", n.text)) ++
+    (profile \ "audience").flatMap(n => Seq(
+      ("dataset_audience", n.text),
+      ("dataset_subject", audienceMap.getOrElse(n.text, ""))
+    )) ++
+    (dcmiMetadata \ "subject").flatMap { n =>
+      getAbrMap(n) match {
+        case None => Seq(("dataset_subject", n.text))
+        case Some(map) if map.isEmpty => Seq(("dataset_subject", n.text))
+        case Some(map) => Seq(
+          ("dataset_subject_abr", n.text),
+          ("dataset_subject", map.getOrElse(n.text, ""))
+        )
+      }
+    } ++
+    (dcmiMetadata \ "coverage").withFilter(_.hasType("dct:Period")).map(n => ("dataset_coverage_temporal", n.text)) ++
+    (dcmiMetadata \ "temporal").flatMap { n =>
+      getAbrMap(n) match {
+        case None => Seq(("dataset_coverage_temporal", n.text))
+        case Some(map) if map.isEmpty => Seq(("dataset_coverage_temporal", n.text))
+        case Some(map) => Seq(
+          ("dataset_coverage_temporal_abr", n.text),
+          ("dataset_coverage_temporal", map.getOrElse(n.text, ""))
+        )
+      }
+    } ++
+    (dcmiMetadata \ "spatial" \\ "description").map(n => ("dataset_coverage_spatial", n.text)) ++
+    (dcmiMetadata \ "spatial" \\ "name").map(n => ("dataset_coverage_spatial", n.text)) ++
+    (dcmiMetadata \ "spatial").withFilter(_.hasType("dcterms:Box")).map(n => ("dataset_coverage_spatial", n.text)) ++
+    (dcmiMetadata \ "relation").withFilter(r => !isUrl(r) && !isStreamingSurrogate(r))
+      .map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "conformsTo").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isVersionOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "hasVersion").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isReplacedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "replaces").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isRequiredBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "requires").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isPartOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "hasPart").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isReferencedBy").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "references").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "isFormatOf").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text)) ++
+    (dcmiMetadata \ "hasFormat").withFilter(!isUrl(_)).map(n => ("dataset_relation", n.text))
+  // TODO complex spatial https://github.com/DANS-KNAW/easy-schema/blob/acb6506/src/main/assembly/dist/docs/examples/ddm/example2.xml#L280-L320
 }
 
 object DDM {
-
-  private val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
 
   private val abrPrefix = "abr:ABR"
 
@@ -121,20 +121,6 @@ object DDM {
       .map(_.text)
       .filter(_.startsWith(abrPrefix))
       .flatMap(abrMaps.get)
-  }
-
-  private def isDOI(identifierNode: Node) = {
-    identifierNode
-      .attribute(xsiURI, "type")
-      .map(_.text)
-      .contains("id-type:DOI")
-  }
-
-  private def isDctPeriod(coverageNode: Node) = {
-    coverageNode
-      .attribute(xsiURI, "type")
-      .map(_.text)
-      .contains("dct:Period")
   }
 
   private def isStreamingSurrogate(relation: Node) = {
