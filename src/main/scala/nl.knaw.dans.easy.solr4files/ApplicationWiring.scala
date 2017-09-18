@@ -89,8 +89,8 @@ class ApplicationWiring(configuration: Configuration)
   private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
     lazy val stats = s"Updated ${ storeNames.size } stores"
     storeNames.toStream.map(initSingleStore).takeUntilFailure match {
-      case (None, _) => Success(stats)
       case (Some(t), Seq()) => Failure(t)
+      case (None, _) => Success(stats)
       case (Some(t), results) =>
         results.foreach(fb => logger.info(fb.getMessage))
         Failure(MixedResultsException(stats, results, t))
@@ -105,10 +105,10 @@ class ApplicationWiring(configuration: Configuration)
     lazy val stats = s"Updated ${ bagIds.size } bags for $storeName "
     bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
       case (Some(t), Seq()) => Failure(t)
-      case (Some(t), results) => Failure(MixedResultsException(stats, results, t))
-      case (None, results) =>
+      case (None, results) => Success(StoreSubmitted(stats, results))
+      case (Some(t), results) =>
         results.foreach(fb => logger.info(fb.getMessage))
-        Success(StoreSubmitted(stats, results))
+        Failure(MixedResultsException(stats, results, t))
     }
   }
 
