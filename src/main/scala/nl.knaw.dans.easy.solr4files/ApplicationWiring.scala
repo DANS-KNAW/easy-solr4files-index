@@ -21,7 +21,7 @@ import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Try }
 import scala.xml.Elem
 
 /**
@@ -60,7 +60,7 @@ class ApplicationWiring(configuration: Configuration)
   }.recoverWith {
     case t: SolrStatusException => commitAnyway(t) // just the delete
     case t: SolrUpdateException => commitAnyway(t) // just the delete
-    case t: MixedResultsException => commitAnyway(t) // delete and some files
+    case t: MixedResultsException[_] => commitAnyway(t) // delete and some files
     case t => Failure(t)
   }
 
@@ -88,13 +88,12 @@ class ApplicationWiring(configuration: Configuration)
    */
   private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
     lazy val stats = s"Updated ${ storeNames.size } stores"
-    storeNames.toStream.map(initSingleStore).takeUntilFailure match {
-      case (Some(t), Seq()) => Failure(t)
-      case (None, _) => Success(stats)
-      case (Some(t), results) =>
-        results.foreach(fb => logger.info(fb.getMessage))
-        Failure(MixedResultsException(stats, results, t))
-    }
+    storeNames
+      .toStream
+      .map(initSingleStore)
+      .takeUntilFailure
+      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .map(storeSubmittedSeq => s"Updated ${ storeNames.size } stores: ${ storeSubmittedSeq.stats }")
   }
 
   /**
@@ -102,14 +101,12 @@ class ApplicationWiring(configuration: Configuration)
    * if and when another bag in the same store failed.
    */
   private def updateBags(storeName: String, bagIds: Seq[String]): Try[StoreSubmitted] = {
-    lazy val stats = s"Updated ${ bagIds.size } bags for $storeName "
-    bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
-      case (Some(t), Seq()) => Failure(t)
-      case (None, results) => Success(StoreSubmitted(stats, results))
-      case (Some(t), results) =>
-        results.foreach(fb => logger.info(fb.getMessage))
-        Failure(MixedResultsException(stats, results, t))
-    }
+    bagIds
+      .toStream
+      .map(update(storeName, _))
+      .takeUntilFailure
+      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .map(bagSubmittedSeq => StoreSubmitted(s"Updated ${ bagIds.size } bags for $storeName ", bagSubmittedSeq))
   }
 
   /**
@@ -118,20 +115,13 @@ class ApplicationWiring(configuration: Configuration)
    * if and when another file in the same bag failed.
    */
   private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[BagSubmitted] = {
-    lazy val statsPrefix = s"Bag ${ bag.bagId }: "
     (filesXML \ "file")
       .map(FileItem(bag, ddm, _))
       .filter(_.shouldIndex)
       .toStream
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
-      .takeUntilFailure match {
-      case (Some(t), Seq()) => Failure(t)
-      case (None, results) => Success(BagSubmitted(statsPrefix, results))
-      case (Some(t), results) =>
-        results
-          .withFilter(_.isInstanceOf[FilesSubmittedWithContent])
-          .foreach(x => logger.info(x.toString))
-        Failure(MixedResultsException(statsPrefix, results, t))
-    }
+      .takeUntilFailure
+      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .map(fileSubmittedSeq => BagSubmitted(s"Bag ${ bag.bagId }: ", fileSubmittedSeq))
   }
 }

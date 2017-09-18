@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy
 
 import java.io.File
-import java.net.{URL, URLDecoder}
+import java.net.{ URL, URLDecoder }
 
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -24,9 +24,9 @@ import org.apache.commons.io.FileUtils.readFileToString
 import org.apache.solr.common.util.NamedList
 
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
-import scala.xml.{Elem, Node, XML}
-import scalaj.http.{Http, HttpResponse}
+import scala.util.{ Failure, Success, Try }
+import scala.xml.{ Elem, Node, XML }
+import scalaj.http.{ Http, HttpResponse }
 
 package object solr4files extends DebugEnhancedLogging {
 
@@ -50,23 +50,34 @@ package object solr4files extends DebugEnhancedLogging {
   case class SolrCommitException(cause: Throwable)
     extends Exception(cause.getMessage, cause)
 
-  case class MixedResultsException(prefix: String, results: Seq[Feedback], thrown: Throwable)
-    extends Exception(prefix + results.stats, thrown)
+  case class MixedResultsException[T](results: Seq[T], thrown: Throwable)
+  // TODO evolve into candidate for dans.lib.error with takeUntilFailure
+    extends Exception(thrown.getMessage, thrown)
+
+  implicit class RichSeq[T](val left: Seq[T]) extends AnyVal {
+    def stats: String = {
+      val xs = left.groupBy(_.getClass.getSimpleName)
+      xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")
+    }
+  }
 
   implicit class RichTryStream[T](val left: Seq[Try[T]]) extends AnyVal {
 
     /** Typical usage: val (thrown, results) = ...toStream.map(TrySomething).takeUntilFailure */
-    def takeUntilFailure: (Option[Throwable], Seq[T]) = {
+    def takeUntilFailure: Try[Seq[T]] = {
       val it = left.iterator
 
       @tailrec
-      def inner(result: List[T] = List.empty): (Option[Throwable], List[T]) = {
-        if (!it.hasNext) (None, result.reverse)
+      def inner(result: List[T] = List.empty): Try[Seq[T]] = {
+        if (!it.hasNext) Success(result.reverse)
         else it.next() match {
           case Success(y) => inner(y :: result)
-          case Failure(t) => (Some(t), result.reverse)
+          case Failure(t) =>
+            val seq: Seq[T] = result.reverse
+            Failure(MixedResultsException(seq, t))
         }
       }
+
       inner()
     }
   }
@@ -82,13 +93,6 @@ package object solr4files extends DebugEnhancedLogging {
   }
   case class BagSubmitted(prefix: String, results: Seq[FileFeedback]) extends Feedback(prefix + results.stats) {
     def getMessage: String = prefix + results.stats
-  }
-
-  implicit class RichFeedbackSeq(val left: Seq[Feedback]) extends AnyVal {
-    def stats: String = {
-      val xs = left.groupBy(_.getClass.getSimpleName)
-      xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")
-    }
   }
 
   val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
