@@ -48,7 +48,7 @@ object Command extends App with DebugEnhancedLogging {
         case init @ commandLine.init => init.bagStore.toOption
           .map(app.initSingleStore)
           .getOrElse(app.initAllStores())
-        case commandLine.runService => ???
+        case commandLine.runService => Failure(new NotImplementedError())
       }
       .getOrElse(Failure(new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")))
   }

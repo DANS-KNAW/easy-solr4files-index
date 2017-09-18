@@ -24,7 +24,7 @@ class DDMSpec extends TestSupportFixture {
   "solrLiteral" should "return proper values" in {
     assume(canConnectToEasySchemas)
     val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
-    val xml = vault.fileURL("pdbs", uuid, "metadata/dataset.xml").flatMap(_.loadXml).get
+    val xml = vault.fileURL("pdbs", uuid, "metadata/dataset.xml").flatMap(_.loadXml).getOrElse(<ddm/>)
 
     val ddm = new DDM(xml)
     ddm.accessRights shouldBe "OPEN_ACCESS"
@@ -107,7 +107,7 @@ class DDMSpec extends TestSupportFixture {
     </ddm:DDM>
     ).solrLiterals
     ddmLiterals.toMap.keys shouldBe Set("dataset_coverage_spatial")
-    ddmLiterals.map { case (k, v) => v } should contain theSameElementsAs Seq(
+    ddmLiterals.map { case (_, v) => v } should contain theSameElementsAs Seq(
       "Entrance of DANS Building",
       "Data Archiving and Networked Services (DANS)",
       "name=Western Australia; northlimit=-13.5; southlimit=-35.5; westlimit=112.5; eastlimit=129"
@@ -127,7 +127,7 @@ class DDMSpec extends TestSupportFixture {
     </ddm:DDM>
     ).solrLiterals
     ddmLiterals.toMap.keys shouldBe Set("dataset_coverage")
-    ddmLiterals.map { case (k, v) => v } should contain theSameElementsAs Seq(
+    ddmLiterals.map { case (_, v) => v } should contain theSameElementsAs Seq(
       "Dekking",
       "meer dekking"
     )
