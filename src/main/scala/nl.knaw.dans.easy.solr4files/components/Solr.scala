@@ -33,7 +33,7 @@ trait Solr extends DebugEnhancedLogging {
   val solrUrl: URL
   lazy val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
 
-  def createDoc(item: FileItem, size: Long): Try[SubmissionFeedback] = {
+  def createDoc(item: FileItem, size: Long): Try[FileFeedback] = {
     item.bag.fileUrl(item.path).flatMap { fileUrl =>
       val solrDocId = s"${ item.bag.bagId }/${ item.path }"
       val request = new ContentStreamUpdateRequest("/update/extract") {
@@ -65,7 +65,7 @@ trait Solr extends DebugEnhancedLogging {
       .recoverWith { case t => Failure(SolrCommitException(t)) }
   }
 
-  private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[SubmissionFeedback] = {
+  private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[FileFeedback] = {
     executeUpdate(req)
       .map(_ => FilesSubmittedWithContent(solrDocId))
       .recoverWith { case t =>

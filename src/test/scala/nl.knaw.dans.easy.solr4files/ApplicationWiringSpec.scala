@@ -69,8 +69,8 @@ class ApplicationWiringSpec extends TestSupportFixture {
   "update" should "call the stubbed solrClient.request" in {
     assume(canConnectToEasySchemas)
     val result = new MockedAndStubbedWiring().update(store, uuid)
-    inside(result) { case Success(msg) =>
-      msg shouldBe s"Bag $uuid: 7 times FilesSubmittedWithContent, 2 times FilesSubmittedWithJustMetadata"
+    inside(result) { case Success(feedback) =>
+      feedback should have message s"Bag $uuid: 7 times FilesSubmittedWithContent, 2 times FilesSubmittedWithJustMetadata"
     }
   }
 

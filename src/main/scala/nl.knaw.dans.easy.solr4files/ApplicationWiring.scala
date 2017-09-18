@@ -42,13 +42,12 @@ class ApplicationWiring(configuration: Configuration)
       .map(results => s"Updated all bags of ${ results.size } stores ($vaultBaseUri)")
   }
 
-  def initSingleStore(storeName: String): Try[FeedBackMessage] = {
+  def initSingleStore(storeName: String): Try[StoreSubmitted] = {
     getBagIds(storeName)
       .flatMap(updateBags(storeName, _))
-      .map(results => s"Updated ${ results.size } bags of one store ($storeName)")
   }
 
-  def update(storeName: String, bagId: String): Try[FeedBackMessage] = {
+  def update(storeName: String, bagId: String): Try[BagSubmitted] = {
     val bag = Bag(storeName, bagId, this)
     for {
       ddmXML <- bag.loadDDM
@@ -93,8 +92,8 @@ class ApplicationWiring(configuration: Configuration)
       case (None, _) => Success(stats)
       case (Some(t), Seq()) => Failure(t)
       case (Some(t), results) =>
-        results.foreach(msg => logger.info(msg))
-        Failure(SomeSucceededException(stats, t))
+        results.foreach(fb => logger.info(fb.getMessage))
+        Failure(MixedResultsException(stats, results, t))
     }
   }
 
@@ -102,14 +101,14 @@ class ApplicationWiring(configuration: Configuration)
    * The number of files submitted with or without content per bag are logged as info
    * if and when another bag in the same store failed.
    */
-  private def updateBags(storeName: String, bagIds: Seq[String]): Try[FeedBackMessage] = {
-    lazy val stats = s"Updated ${ bagIds.size } bags for $storeName"
+  private def updateBags(storeName: String, bagIds: Seq[String]): Try[StoreSubmitted] = {
+    lazy val stats = s"Updated ${ bagIds.size } bags for $storeName "
     bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
       case (Some(t), Seq()) => Failure(t)
-      case (Some(t), _) => Failure(SomeSucceededException(stats, t))
+      case (Some(t), results) => Failure(MixedResultsException(stats, results, t))
       case (None, results) =>
-        results.foreach(msg => logger.info(msg))
-        Success(stats)
+        results.foreach(fb => logger.info(fb.getMessage))
+        Success(StoreSubmitted(stats, results))
     }
   }
 
@@ -118,7 +117,7 @@ class ApplicationWiring(configuration: Configuration)
    * Files submitted with content are logged as info
    * if and when another file in the same bag failed.
    */
-  private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[FeedBackMessage] = {
+  private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[BagSubmitted] = {
     lazy val statsPrefix = s"Bag ${ bag.bagId }: "
     (filesXML \ "file")
       .map(FileItem(bag, ddm, _))
@@ -127,7 +126,7 @@ class ApplicationWiring(configuration: Configuration)
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
       .takeUntilFailure match {
       case (Some(t), Seq()) => Failure(t)
-      case (None, results) => Success(statsPrefix + results.stats)
+      case (None, results) => Success(BagSubmitted(statsPrefix, results))
       case (Some(t), results) =>
         results
           .withFilter(_.isInstanceOf[FilesSubmittedWithContent])

@@ -24,9 +24,9 @@ class EasyUpdateSolr4filesIndexApp(wiring: ApplicationWiring) extends AutoClosea
 
   def initAllStores(): Try[String] = wiring.initAllStores()
 
-  def initSingleStore(storeName: String): Try[String] = wiring.initSingleStore(storeName)
+  def initSingleStore(storeName: String): Try[String] = wiring.initSingleStore(storeName).map(_.getMessage)
 
-  def update(storeName: String, bagId: String): Try[String] = wiring.update(storeName, bagId)
+  def update(storeName: String, bagId: String): Try[String] = wiring.update(storeName, bagId).map(_.getMessage)
 
   def delete(bagId: String): Try[String] = wiring.delete(bagId)
 

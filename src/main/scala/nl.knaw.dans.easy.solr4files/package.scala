@@ -50,20 +50,23 @@ package object solr4files extends DebugEnhancedLogging {
   case class SolrCommitException(cause: Throwable)
     extends Exception(cause.getMessage, cause)
 
-  // TODO more feedback classes to replace this with MixedResultsException
-  case class SomeSucceededException(msg: String, cause: Throwable)
-    extends Exception(s"$msg; ${ cause.getMessage }", cause)
-
-  case class MixedResultsException(prefix: String, results: Seq[SubmissionFeedback], thrown: Throwable)
+  case class MixedResultsException(prefix: String, results: Seq[Feedback], thrown: Throwable)
     extends Exception(prefix + results.stats, thrown)
 
-  abstract sealed class SubmissionFeedback(val solrId: String)
-  case class FilesSubmittedWithContent(override val solrId: String) extends SubmissionFeedback(solrId)
-  case class FilesSubmittedWithJustMetadata(override val solrId: String) extends SubmissionFeedback(solrId) {
-    logger.warn(s"Resubmitted $solrId with just metadata")
+  abstract sealed class Feedback(val msg: String)
+  abstract sealed class FileFeedback(override val msg: String) extends Feedback(msg)
+  case class FilesSubmittedWithContent(override val msg: String) extends FileFeedback(msg)
+  case class FilesSubmittedWithJustMetadata(override val msg: String) extends FileFeedback(msg) {
+    logger.warn(s"Resubmitted $msg with just metadata")
+  }
+  case class StoreSubmitted(prefix: String, results: Seq[BagSubmitted]) extends Feedback(prefix + results.stats) {
+    def getMessage: String = prefix + results.stats
+  }
+  case class BagSubmitted(prefix: String, results: Seq[FileFeedback]) extends Feedback(prefix + results.stats) {
+    def getMessage: String = prefix + results.stats
   }
 
-  implicit class RichFeedbackSeq(val left: Seq[SubmissionFeedback]) extends AnyVal {
+  implicit class RichFeedbackSeq(val left: Seq[Feedback]) extends AnyVal {
     def stats: String = {
       val xs = left.groupBy(_.getClass.getSimpleName)
       xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")
