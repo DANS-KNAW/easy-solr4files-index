@@ -24,7 +24,7 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{ SolrClient, SolrQuery }
-import org.apache.solr.common.util.ContentStreamBase
+import org.apache.solr.common.util.{ ContentStreamBase, NamedList }
 
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
@@ -53,36 +53,48 @@ trait Solr extends DebugEnhancedLogging {
     }
   }
 
+  def deleteBag(bagId: String): Try[UpdateResponse] = {
+    // no status to check since UpdateResponse is a stub
+    Try (solrClient.deleteByQuery(createDeleteQuery(bagId)))
+      .recoverWith { case t => Failure(SolrDeleteException(bagId, t))}
+  }
+
+  def commit(): Try[UpdateResponse] = {
+    // no status to check since UpdateResponse is a stub
+    Try(solrClient.commit())
+      .recoverWith { case t => Failure(SolrCommitException(t))}
+  }
+
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[SubmissionFeedback] = {
     executeUpdate(req)
       .map(_ => FilesSubmittedWithContent(solrDocId))
       .recoverWith { case t =>
         logger.warn(s"Submission with content of $solrDocId failed with ${ t.getMessage }", t)
         req.getContentStreams.clear() // retry with just metadata
-        executeUpdate(req).map(_ => FilesSubmittedWithJustMetadata(solrDocId))
+        executeUpdate(req)
+          .map(_ => FilesSubmittedWithJustMetadata(solrDocId))
+          .recoverWith {
+            case t2: SolrStatusException => Failure(t2)
+            case t2 => Failure(SolrUpdateException(solrDocId, t2))
+          }
       }
   }
 
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
     Try(solrClient.request(req))
-      .flatMap(namedList =>
-        Option(namedList.get("status"))
-        .withFilter("0" !=)
-        .map(_ => Failure(SolrStatusException(namedList)))
-        .getOrElse(Success(()))
-      )
+      .flatMap(checkSolrStatus)
   }
 
-  def deleteBag(bagId: String): Try[FeedBackMessage] = Try {
-    solrClient.deleteByQuery(new SolrQuery {
+  private def createDeleteQuery(bagId: String) = {
+    new SolrQuery {
       set("q", s"id:$bagId/*")
-    }.getQuery)
-    s"deleted $bagId from the index"
+    }.getQuery
   }
 
-  def commit(): Try[UpdateResponse] = {
-    Try(solrClient.commit()).recoverWith{
-      case t => Failure(SolrCommitException(t))
-    }
+  private def checkSolrStatus(namedList: NamedList[AnyRef]) = {
+    Option(namedList.get("status"))
+      .withFilter("0" !=)
+      .map(_ => Failure(SolrStatusException(namedList)))
+      .getOrElse(Success(()))
   }
 }

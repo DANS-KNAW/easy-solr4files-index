@@ -18,6 +18,7 @@ package nl.knaw.dans.easy.solr4files
 import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.{ Failure, Success, Try }
@@ -31,7 +32,7 @@ import scala.xml.Elem
 class ApplicationWiring(configuration: Configuration)
   extends DebugEnhancedLogging with Vault with Solr {
 
-  // don't need resolve for solr, URL gives more early errors TODO perhaps not enough early errors
+  // don't need resolve for solr, URL gives more early errors TODO perhaps not yet at service startup once implemented
   override val solrUrl: URL = new URL(configuration.properties.getString("solr.url", ""))
   override val vaultBaseUri: URI = new URI(configuration.properties.getString("vault.url", ""))
 
@@ -58,10 +59,10 @@ class ApplicationWiring(configuration: Configuration)
       _ <- commit()
     } yield feedbackMessage
   }.recoverWith {
-    case t: SolrCommitException => Failure(t)
-    case t =>
-      commit() // TODO failure gets lost https://github.com/DANS-KNAW/easy-update-solr4files-index/pull/1#discussion_r138947899
-      Failure(t)
+    case t: SolrStatusException => commitAnyway(t) // just the delete
+    case t: SolrUpdateException => commitAnyway(t) // just the delete
+    case t: MixedResultsException => commitAnyway(t) // delete and some files
+    case t => Failure(t)
   }
 
   def delete(bagId: String): Try[FeedBackMessage] = {
@@ -76,6 +77,16 @@ class ApplicationWiring(configuration: Configuration)
       Failure(t)
   }
 
+  private def commitAnyway(t: Throwable): Try[Nothing] = {
+    commit()
+      .map(_ => Failure(t))
+      .getOrRecover(t2 => Failure(new CompositeException(t2, t)))
+  }
+
+  /**
+   * The number of bags submitted per store are logged as info
+   * if and when another store in the vault failed.
+   */
   private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
     lazy val stats = s"Updated ${ storeNames.size } stores"
     storeNames.toStream.map(initSingleStore).takeUntilFailure match {
@@ -87,6 +98,10 @@ class ApplicationWiring(configuration: Configuration)
     }
   }
 
+  /**
+   * The number of files submitted with or without content per bag are logged as info
+   * if and when another bag in the same store failed.
+   */
   private def updateBags(storeName: String, bagIds: Seq[String]): Try[FeedBackMessage] = {
     lazy val stats = s"Updated ${ bagIds.size } bags for $storeName"
     bagIds.toStream.map(update(storeName, _)).takeUntilFailure match {
@@ -98,21 +113,26 @@ class ApplicationWiring(configuration: Configuration)
     }
   }
 
+  /**
+   * Files submitted without content are logged immediately as warning.
+   * Files submitted with content are logged as info
+   * if and when another file in the same bag failed.
+   */
   private def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[FeedBackMessage] = {
-    lazy val statsPrefix = s"Bag ${bag.bagId}: "
+    lazy val statsPrefix = s"Bag ${ bag.bagId }: "
     (filesXML \ "file")
       .map(FileItem(bag, ddm, _))
       .filter(_.shouldIndex)
       .toStream
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
       .takeUntilFailure match {
-        case (Some(t), Seq()) => Failure(t)
-        case (None, results) => Success(statsPrefix + results.stats)
-        case (Some(t), results) =>
-          results // FilesSubmittedWithJustMetadata logged warnings
-            .withFilter(_.isInstanceOf[FilesSubmittedWithContent])
-            .foreach(x => logger.info(x.toString))
-          Failure(MixedResultsException(statsPrefix, results, t))
-      }
+      case (Some(t), Seq()) => Failure(t)
+      case (None, results) => Success(statsPrefix + results.stats)
+      case (Some(t), results) =>
+        results
+          .withFilter(_.isInstanceOf[FilesSubmittedWithContent])
+          .foreach(x => logger.info(x.toString))
+        Failure(MixedResultsException(statsPrefix, results, t))
+    }
   }
 }

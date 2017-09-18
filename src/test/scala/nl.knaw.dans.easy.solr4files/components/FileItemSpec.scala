@@ -58,7 +58,7 @@ class FileItemSpec extends TestSupportFixture {
     solrLiterals("file_accessible_to") shouldBe "KNOWN"
   }
 
-  ignore should "not have read the lazy files in case of accessible to none" in { // TODO
+  it should "not have read the lazy files in case of accessible to none" ignore { // TODO
     val item = FileItem(bag, ddm("NO_ACCESS"), <file filepath="p"/>)
 
     // The bag.sha's and ddm.vocabularies are private
