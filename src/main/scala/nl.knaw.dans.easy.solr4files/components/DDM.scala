@@ -22,7 +22,6 @@ import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.util.Try
 import scala.xml.{ Node, NodeSeq }
 
@@ -120,10 +119,11 @@ object DDM {
     def internal(todo: Seq[Node] = ns, result: List[String] = List.empty): List[String] = {
       todo match {
         case Seq() => result
-        case Seq(h, t@_*) if h.child.isEmpty => internal(t, h.text :: result)
-        case Seq(h, t@_*) => internal(h.child ++ t, result)
+        case Seq(h, t @ _*) if h.child.isEmpty => internal(t, h.text :: result)
+        case Seq(h, t @ _*) => internal(h.child ++ t, result)
       }
     }
+
     (solrField, internal().reverse.mkString(" "))
   }
 

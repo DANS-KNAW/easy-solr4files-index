@@ -21,11 +21,11 @@ import java.nio.file.Paths
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
-import org.apache.solr.client.solrj.{SolrClient, SolrRequest, SolrResponse}
+import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
 import org.apache.solr.common.util.NamedList
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 class ApplicationWiringSpec extends TestSupportFixture {
 
@@ -88,7 +88,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
 
-    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.update"}
+    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.update" }
   }
 
   "initAllStores" should "call the stubbed ApplicationWiring.initSingleStore method" in {
@@ -97,7 +97,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
       override def initSingleStore(store: String) = Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
     }.initAllStores()
 
-    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.initSingleStore"}
+    inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.initSingleStore" }
   }
 
   private def createConfig(testDir: String) = {

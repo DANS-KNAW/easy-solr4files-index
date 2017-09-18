@@ -55,14 +55,14 @@ trait Solr extends DebugEnhancedLogging {
 
   def deleteBag(bagId: String): Try[UpdateResponse] = {
     // no status to check since UpdateResponse is a stub
-    Try (solrClient.deleteByQuery(createDeleteQuery(bagId)))
-      .recoverWith { case t => Failure(SolrDeleteException(bagId, t))}
+    Try(solrClient.deleteByQuery(createDeleteQuery(bagId)))
+      .recoverWith { case t => Failure(SolrDeleteException(bagId, t)) }
   }
 
   def commit(): Try[UpdateResponse] = {
     // no status to check since UpdateResponse is a stub
     Try(solrClient.commit())
-      .recoverWith { case t => Failure(SolrCommitException(t))}
+      .recoverWith { case t => Failure(SolrCommitException(t)) }
   }
 
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[SubmissionFeedback] = {

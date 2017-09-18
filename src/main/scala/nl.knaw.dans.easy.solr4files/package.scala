@@ -42,10 +42,10 @@ package object solr4files extends DebugEnhancedLogging {
     extends Exception(s"solr update returned: ${ namedList.asShallowMap().values().toArray().mkString }")
 
   case class SolrDeleteException(bagId: String, cause: Throwable)
-    extends Exception(s"solr delete of bag $bagId failed with ${cause.getMessage}", cause)
+    extends Exception(s"solr delete of bag $bagId failed with ${ cause.getMessage }", cause)
 
   case class SolrUpdateException(solrId: String, cause: Throwable)
-    extends Exception(s"solr update of file $solrId failed with ${cause.getMessage}", cause)
+    extends Exception(s"solr update of file $solrId failed with ${ cause.getMessage }", cause)
 
   case class SolrCommitException(cause: Throwable)
     extends Exception(cause.getMessage, cause)
@@ -66,7 +66,7 @@ package object solr4files extends DebugEnhancedLogging {
   implicit class RichFeedbackSeq(val left: Seq[SubmissionFeedback]) extends AnyVal {
     def stats: String = {
       val xs = left.groupBy(_.getClass.getSimpleName)
-      xs.keySet.map(className => s"${xs(className).size} times $className").mkString(", ")
+      xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")
     }
   }
 

@@ -34,7 +34,7 @@ class DDMSpec extends TestSupportFixture {
     val expected = Seq(
       ("dataset_doi", "10.5072/dans-x6g-x2hb"),
       ("dataset_identifier", "URN urn:nbn:nl:ui:13-7vca-i7"),
-      ("dataset_identifier","ARCHIS-ZAAK-IDENTIFICATIE 6663"),
+      ("dataset_identifier", "ARCHIS-ZAAK-IDENTIFICATIE 6663"),
       ("dataset_identifier", "easy-dataset:14"),
       ("dataset_identifier", "ds1"),
       ("dataset_audience", "D30000"),
@@ -107,7 +107,7 @@ class DDMSpec extends TestSupportFixture {
     </ddm:DDM>
     ).solrLiterals
     ddmLiterals.toMap.keys shouldBe Set("dataset_coverage_spatial")
-    ddmLiterals.map{case (k,v) => v} should contain theSameElementsAs Seq(
+    ddmLiterals.map { case (k, v) => v } should contain theSameElementsAs Seq(
       "Entrance of DANS Building",
       "Data Archiving and Networked Services (DANS)",
       "name=Western Australia; northlimit=-13.5; southlimit=-35.5; westlimit=112.5; eastlimit=129"
@@ -127,7 +127,7 @@ class DDMSpec extends TestSupportFixture {
     </ddm:DDM>
     ).solrLiterals
     ddmLiterals.toMap.keys shouldBe Set("dataset_coverage")
-    ddmLiterals.map{case (k,v) => v} should contain theSameElementsAs Seq(
+    ddmLiterals.map { case (k, v) => v } should contain theSameElementsAs Seq(
       "Dekking",
       "meer dekking"
     )
