@@ -67,12 +67,12 @@ trait Solr extends DebugEnhancedLogging {
 
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[FileFeedback] = {
     executeUpdate(req)
-      .map(_ => FilesSubmittedWithContent(solrDocId))
+      .map(_ => FileSubmittedWithContent(solrDocId))
       .recoverWith { case t =>
         logger.warn(s"Submission with content of $solrDocId failed with ${ t.getMessage }", t)
         req.getContentStreams.clear() // retry with just metadata
         executeUpdate(req)
-          .map(_ => FilesSubmittedWithJustMetadata(solrDocId))
+          .map(_ => FileSubmittedWithJustMetadata(solrDocId))
           .recoverWith {
             case t2: SolrStatusException => Failure(t2)
             case t2 => Failure(SolrUpdateException(solrDocId, t2))

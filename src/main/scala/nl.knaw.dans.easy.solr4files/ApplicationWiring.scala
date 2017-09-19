@@ -87,12 +87,11 @@ class ApplicationWiring(configuration: Configuration)
    * if and when another store in the vault failed.
    */
   private def updateStores(storeNames: Seq[String]): Try[FeedBackMessage] = {
-    lazy val stats = s"Updated ${ storeNames.size } stores"
     storeNames
       .toStream
       .map(initSingleStore)
       .takeUntilFailure
-      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
       .map(storeSubmittedSeq => s"Updated ${ storeNames.size } stores: ${ storeSubmittedSeq.stats }")
   }
 
@@ -105,7 +104,7 @@ class ApplicationWiring(configuration: Configuration)
       .toStream
       .map(update(storeName, _))
       .takeUntilFailure
-      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
       .map(bagSubmittedSeq => StoreSubmitted(s"Updated ${ bagIds.size } bags for $storeName ", bagSubmittedSeq))
   }
 
@@ -121,7 +120,7 @@ class ApplicationWiring(configuration: Configuration)
       .toStream
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
       .takeUntilFailure
-      .doIfFailure { case t: MixedResultsException[Feedback] => t.results.foreach(fb => logger.info(fb.msg)) }
+      .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
       .map(fileSubmittedSeq => BagSubmitted(s"Bag ${ bag.bagId }: ", fileSubmittedSeq))
   }
 }
