@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils.readFileToString
 import org.apache.solr.common.util.NamedList
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.util.{ Failure, Success, Try }
 import scala.xml.{ Elem, Node, XML }
 import scalaj.http.{ Http, HttpResponse }
@@ -54,27 +55,21 @@ package object solr4files extends DebugEnhancedLogging {
   // TODO evolve into candidate for dans.lib.error with takeUntilFailure
     extends Exception(thrown.getMessage, thrown)
 
-  implicit class RichSeq[T](val left: Seq[T]) extends AnyVal {
-    def stats: String = {
-      val xs = left.groupBy(_.getClass.getSimpleName)
-      xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")
-    }
-  }
-
   implicit class RichTryStream[T](val left: Seq[Try[T]]) extends AnyVal {
 
-    /** Typical usage: val (thrown, results) = ...toStream.map(TrySomething).takeUntilFailure */
+    /** Typical usage: toStream.map(TrySomething).takeUntilFailure */
     def takeUntilFailure: Try[Seq[T]] = {
       val it = left.iterator
+      val b = mutable.ListBuffer[T]()
 
       @tailrec
-      def inner(result: List[T] = List.empty): Try[Seq[T]] = {
-        if (!it.hasNext) Success(result.reverse)
+      def inner(): Try[Seq[T]] = {
+        if (!it.hasNext) Success(b)
         else it.next() match {
-          case Success(y) => inner(y :: result)
-          case Failure(t) =>
-            val seq: Seq[T] = result.reverse
-            Failure(MixedResultsException(seq, t))
+          case Success(y) =>
+            b += y
+            inner()
+          case Failure(t) => Failure(MixedResultsException(b, t))
         }
       }
 
@@ -91,7 +86,8 @@ package object solr4files extends DebugEnhancedLogging {
   case class StoreSubmitted(override val msg: String) extends Feedback(msg)
   case class BagSubmitted(override val msg: String, results: Seq[FileFeedback]) extends Feedback(msg) {
     override def toString: String = {
-      s"Bag $msg: ${ results.stats }"
+      val xs = results.groupBy(_.getClass.getSimpleName)
+      s"Bag $msg: ${ xs.keySet.map(className => s"${ xs(className).size } times $className").mkString(", ")}"
     }
   }
 
