@@ -39,7 +39,6 @@ class ApplicationWiring(configuration: Configuration)
   def initAllStores(): Try[FeedBackMessage] = {
     getStoreNames
       .flatMap(updateStores)
-      .map(results => s"Updated all bags of ${ results.size } stores ($vaultBaseUri)")
   }
 
   def initSingleStore(storeName: String): Try[StoreSubmitted] = {
@@ -92,7 +91,7 @@ class ApplicationWiring(configuration: Configuration)
       .map(initSingleStore)
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
-      .map(storeSubmittedSeq => s"Updated ${ storeNames.size } stores: ${ storeSubmittedSeq.stats }")
+      .map(storeSubmittedSeq => s"Updated ${ storeNames.size } stores: ${ storeSubmittedSeq.map(_.msg).mkString(", ") }.")
   }
 
   /**
@@ -105,7 +104,7 @@ class ApplicationWiring(configuration: Configuration)
       .map(update(storeName, _))
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
-      .map(bagSubmittedSeq => StoreSubmitted(s"Updated ${ bagIds.size } bags for $storeName ", bagSubmittedSeq))
+      .map(_ => StoreSubmitted(s"${ bagIds.size } bags for $storeName"))
   }
 
   /**
@@ -121,6 +120,6 @@ class ApplicationWiring(configuration: Configuration)
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
-      .map(fileSubmittedSeq => BagSubmitted(s"Bag ${ bag.bagId }: ", fileSubmittedSeq))
+      .map(_ => BagSubmitted(bag.bagId))
   }
 }
