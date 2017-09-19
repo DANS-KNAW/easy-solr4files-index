@@ -84,11 +84,15 @@ package object solr4files extends DebugEnhancedLogging {
 
   abstract sealed class Feedback(val msg: String)
   abstract sealed class FileFeedback(override val msg: String) extends Feedback(msg)
-  case class StoreSubmitted(override val msg: String) extends Feedback(msg)
-  case class BagSubmitted(override val msg: String) extends Feedback(msg)
   case class FileSubmittedWithContent(override val msg: String) extends FileFeedback(msg)
   case class FileSubmittedWithJustMetadata(override val msg: String) extends FileFeedback(msg) {
     logger.warn(s"Resubmitted $msg with just metadata")
+  }
+  case class StoreSubmitted(override val msg: String) extends Feedback(msg)
+  case class BagSubmitted(override val msg: String, results: Seq[FileFeedback]) extends Feedback(msg) {
+    override def toString: String = {
+      s"Bag $msg: ${ results.stats }"
+    }
   }
 
   val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
