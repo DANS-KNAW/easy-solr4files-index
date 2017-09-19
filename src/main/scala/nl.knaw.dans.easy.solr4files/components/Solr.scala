@@ -42,9 +42,7 @@ trait Solr extends DebugEnhancedLogging {
         addContentStream(new ContentStreamBase.URLStream(fileUrl))
         setParam("literal.id", solrDocId)
         setParam("literal.easy_file_size", size.toString)
-        for (
-          (key, value) <- item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals
-        ) {
+        for ((key, value) <- item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals) {
           if (value.trim.nonEmpty)
             setParam(s"literal.easy_$key", value.replaceAll("\\s+", " ").trim)
         }
@@ -83,6 +81,7 @@ trait Solr extends DebugEnhancedLogging {
           }
       }
   }
+
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
     Try(solrClient.request(req))
       .flatMap(checkSolrStatus)
