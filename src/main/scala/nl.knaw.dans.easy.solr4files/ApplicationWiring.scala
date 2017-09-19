@@ -120,6 +120,6 @@ class ApplicationWiring(configuration: Configuration)
       .map(f => createDoc(f, getSize(f.bag.storeName, f.bag.bagId, f.path)))
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
-      .map(_ => BagSubmitted(bag.bagId))
+      .map(results => BagSubmitted(bag.bagId, results))
   }
 }
