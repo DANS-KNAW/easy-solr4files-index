@@ -66,7 +66,10 @@ trait Solr extends DebugEnhancedLogging {
   }
 
   private def submitRequest(solrDocId: String, req: ContentStreamUpdateRequest): Try[FileFeedback] = {
-    //TODO logger.debug(req.getParams.getParameterNames.toArray()..map { case (key, values) =>  })
+    logger.debug(req.getParams.getParameterNames.toArray()
+      .map(key => s"$key = ${ req.getParams.getParams(key.toString).toSeq.mkString(", ") }")
+      .mkString("\n\t")
+    )
     executeUpdate(req)
       .map(_ => FileSubmittedWithContent(solrDocId))
       .recoverWith { case t =>
@@ -80,7 +83,6 @@ trait Solr extends DebugEnhancedLogging {
           }
       }
   }
-
   private def executeUpdate(req: ContentStreamUpdateRequest): Try[Unit] = {
     Try(solrClient.request(req))
       .flatMap(checkSolrStatus)
