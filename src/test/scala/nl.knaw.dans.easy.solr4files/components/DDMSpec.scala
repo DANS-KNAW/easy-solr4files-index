@@ -49,7 +49,7 @@ class DDMSpec extends TestSupportFixture {
       ("dataset_subject", "Infrastructuur, onbepaald"),
       ("dataset_coverage_temporal_abr", "PALEOLB"),
       ("dataset_coverage_temporal", "Paleolithicum laat B: 18000 C14 -8800 vC"),
-      ("dataset_title", "Reis naar Centaur-planetoïde"),
+      ("dataset_title", s"Reis naar Centaur-planeto\u00efde"),
       ("dataset_title", "Trip to Centaur asteroid")
     )
     // in case of problems "should contain theSameElementsAs" gives two very long lists that do not equal
