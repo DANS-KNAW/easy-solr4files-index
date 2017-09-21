@@ -22,6 +22,7 @@ import nl.knaw.dans.easy.solr4files.components.DDM._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 import scala.xml.{ Node, NodeSeq }
 
@@ -93,7 +94,7 @@ object DDM {
       .flatMap(abrMaps.get)
   }
 
-  def maybeAbr(n: Node, solrField: String): SolrLiterals = {
+  private def maybeAbr(n: Node, solrField: String): SolrLiterals = {
     getAbrMap(n) match {
       case None => Seq((solrField, n.text))
       case Some(map) if map.isEmpty => Seq((solrField, n.text))
@@ -104,27 +105,27 @@ object DDM {
     }
   }
 
-  def typedID(n: Node, solrField: String): (String, String) = {
+  private def typedID(n: Node, solrField: String): (String, String) = {
     (solrField, n.attribute(xsiURI, "type").map(_.text).mkString.replace("id-type:", "") + " " + n.text)
   }
 
-  def simlpeText(n: Node, solrField: String): (String, String) = {
+  private def simlpeText(n: Node, solrField: String): (String, String) = {
     (solrField, n.text)
   }
 
 
-  def nestedText(ns: Seq[Node], solrField: String): (String, String) = {
+  private def nestedText(ns: Seq[Node], solrField: String): (String, String) = {
 
     @tailrec
-    def internal(todo: Seq[Node] = ns, result: List[String] = List.empty): List[String] = {
+    def internal(todo: Seq[Node] = ns, result: ListBuffer[String] = ListBuffer.empty): ListBuffer[String] = {
       todo match {
         case Seq() => result
-        case Seq(h, t @ _*) if h.child.isEmpty => internal(t, h.text :: result)
+        case Seq(h, t @ _*) if h.child.isEmpty => internal(t, result += h.text)
         case Seq(h, t @ _*) => internal(h.child ++ t, result)
       }
     }
 
-    (solrField, internal().reverse.mkString(" "))
+    (solrField, internal().mkString(" "))
   }
 
   private def loadVocabularies(xsdURL: String): Map[String, VocabularyMap] = {
