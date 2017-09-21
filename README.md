@@ -2,8 +2,6 @@ easy-update-solr4files-index
 ===========
 [![Build Status](https://travis-ci.org/DANS-KNAW/easy-update-solr4files-index.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-update-solr4files-index)
 
-<!-- Remove this comment and extend the descriptions below -->
-
 
 SYNOPSIS
 --------
@@ -15,7 +13,13 @@ SYNOPSIS
 DESCRIPTION
 -----------
 
-Update the EASY SOLR for Files Index with file data from a bag-store
+Update the EASY SOLR for Files Index with file data from a bag-store.
+
+File content is indexed together with some file metadata as well as dataset metadata.
+Files are only indexed if `easy_file_accessible_to` gets a value 
+`anonymous`, `known`, `restrictedGroup` or `restrictedRequest`.
+If the value is not provided at file level by `metadata/files.xml`,
+a default is derived from `<ddm:profile><ddm:accessRights>` in `metadata/dataset.xml`.
 
 
 ARGUMENTS
@@ -26,7 +30,7 @@ ARGUMENTS
         --help      Show help message
         --version   Show version of this program
 
-    Subcommand: update - Update a bag in the SOLR index
+    Subcommand: update - Update accessible files of a bag in the SOLR index
       -s, --bag-store  <arg>   Name of the bag store (default = pdbs)
           --help               Show help message
     
@@ -41,7 +45,7 @@ ARGUMENTS
       bag-uuid (required)
     ---
     
-    Subcommand: init - Rebuild the SOLR index from scratch for one or all bag store(s)
+    Subcommand: init - Rebuild the SOLR index from scratch for active bags in one or all store(s)
           --help   Show help message
     
      trailing arguments:
