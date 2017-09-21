@@ -115,13 +115,16 @@ object DDM {
 
 
   private def nestedText(ns: Seq[Node], solrField: String): (String, String) = {
+    val result: ListBuffer[String] = ListBuffer.empty
 
     @tailrec
-    def internal(todo: Seq[Node] = ns, result: ListBuffer[String] = ListBuffer.empty): ListBuffer[String] = {
+    def internal(todo: Seq[Node] = ns): ListBuffer[String] = {
       todo match {
         case Seq() => result
-        case Seq(h, t @ _*) if h.child.isEmpty => internal(t, result += h.text)
-        case Seq(h, t @ _*) => internal(h.child ++ t, result)
+        case Seq(h, t @ _*) if h.child.isEmpty =>
+          result += h.text
+          internal(t)
+        case Seq(h, t @ _*) => internal(h.child ++ t)
       }
     }
 
