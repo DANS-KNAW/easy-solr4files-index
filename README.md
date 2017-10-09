@@ -26,13 +26,13 @@ When started with the sub-command `run-service` an HTTP API becomes available su
 In a path pattern `*` refers to any completion of the path, and placeholders for variables start with a colon.
 Optional parts are enclosed in square brackets, a pipe symbol denotes alternatives and parentheses are used to group those alternatives.
 
-Method   | Path                                |Action
----------|-------------------------------------|------------------------------------
-`GET`    | `/fileindex`                        | Return a simple message to indicate that the service is up: "EASY File index is running."
-`POST`   | `/fileindex/init[/:store]`          | Index all bag stores or just one. Eventual obsolete items are cleared.
-`POST`   | `/fileindex/update/:store[/:uuid]`  | Index all files of one bag. Eventual obsolete file items are cleared.
-`DELETE` | `/fileindex/:store[/:uuid]`         | Remove all items or the items of a store or bag.
-`DELETE` | `/fileindex?q=*`                    | Remove the items matching the specified solr query.
+Method   | Path                             |Action
+---------|----------------------------------|------------------------------------
+`GET`    | `/fileindex`                     | Return a simple message to indicate that the service is up: "EASY File index is running."
+`POST`   | `/fileindex/init[/:store]`       | Index all bag stores or just one. Eventual obsolete items are cleared.
+`POST`   | `/fileindex/update/:store/:uuid` | Index all files of one bag. Eventual obsolete file items are cleared.
+`DELETE` | `/fileindex/:store[/:uuid]`      | Remove all items or the items of a store or bag.
+`DELETE` | `/fileindex?q=*`                 | Remove the items matching the specified solr query.
 
 
 DESCRIPTION
