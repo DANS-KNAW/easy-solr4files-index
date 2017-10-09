@@ -17,9 +17,11 @@ package nl.knaw.dans.easy.solr4files
 
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.apache.http.HttpStatus._
 import org.scalatra._
 
 import scala.util.Try
+import scalaj.http.HttpResponse
 
 class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet with DebugEnhancedLogging {
   logger.info("File index Servlet running...")
@@ -30,32 +32,41 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
   }
 
   private def respond(result: Try[String]): ActionResult = {
+    val msg = "Log files should show which actions succeeded. Finally failed with: "
     result.map(Ok(_))
       .doIfFailure { case e => logger.error(e.getMessage, e) }
-      .getOrRecover(_ => InternalServerError())
+      .getOrRecover {
+        case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_NOT_FOUND => NotFound(message)
+        case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(message)
+        case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(message)
+        case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_NOT_FOUND => NotFound(msg + message)
+        case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(msg + message)
+        case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(msg + message)
+        case _ => InternalServerError()
+      }
   }
 
   post("/update/:store/:uuid") {
-    respond(app.update(params("store"),params("uuid")))
+    respond(app.update(params("store"), params("uuid")))
   }
 
   post("/init") {
     params.get("store")
-      .map (app.initSingleStore)
+      .map(app.initSingleStore)
       .getOrElse(respond(app.initAllStores()))
   }
 
   delete("/:store/:uuid") {
-    respond(app.delete(s"easy_dataset_id:${params("uuid")}"))
+    respond(app.delete(s"easy_dataset_id:${ params("uuid") }"))
   }
 
   delete("/:store") {
-    respond(app.delete(s"easy_dataset_store_id:${params("store")}"))
+    respond(app.delete(s"easy_dataset_store_id:${ params("store") }"))
   }
 
   delete("/") {
     params.get("q")
-      .map (app.delete)
+      .map(app.delete)
       .getOrElse(BadRequest(s"delete requires param 'q': a solr query"))
   }
 }
