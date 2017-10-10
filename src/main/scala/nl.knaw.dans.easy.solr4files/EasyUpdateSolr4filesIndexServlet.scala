@@ -15,12 +15,15 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.lang.Exception
+
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.http.HttpStatus._
 import org.scalatra._
 
 import scala.util.Try
+import scala.util.control.Exception
 import scalaj.http.HttpResponse
 
 class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet with DebugEnhancedLogging {
@@ -36,13 +39,14 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
     result.map(Ok(_))
       .doIfFailure { case e => logger.error(e.getMessage, e) }
       .getOrRecover {
+        case SolrBadRequestException(message, _) => BadRequest(message) // delete or search only
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_NOT_FOUND => NotFound(message)
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(message)
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(message)
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_NOT_FOUND => NotFound(msg + message)
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(msg + message)
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(msg + message)
-        case _ => InternalServerError()
+        case e => InternalServerError(e.getMessage) // TODO no or neutral message for to be implemented public search
       }
   }
 
@@ -66,7 +70,7 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
 
   delete("/") {
     params.get("q")
-      .map(app.delete)
+      .map(q => respond(app.delete(q)))
       .getOrElse(BadRequest(s"delete requires param 'q': a solr query"))
   }
 }

@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2017 DANS - Data Archiving and Networked Services (info@dans.knaw.nl)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package nl.knaw.dans.easy.solr4files
 
 import org.apache.http.HttpStatus._
@@ -48,8 +63,15 @@ class UpdateServletSpec extends TestSupportFixture
     }
   }
 
+  it should "return NOT FOUND with too many path elements" in {
+    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara") {
+      status shouldBe SC_NOT_FOUND
+      body should startWith("""Requesting "POST /update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara" on servlet "" but only have:""")
+    }
+  }
+
   it should "return NOT FOUND if something is not found for the n-th file, bag or store" in {
-    // TODO check if exceptions from RichUrl.getContent indeed bubble up
+    // TODO check if exceptions from getContent indeed bubble up: refactor RichUrl into heavy cake trait
     (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
       Failure(MixedResultsException(Seq.empty, createHttpException(SC_NOT_FOUND)))
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
@@ -64,6 +86,57 @@ class UpdateServletSpec extends TestSupportFixture
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       status shouldBe SC_INTERNAL_SERVER_ERROR
       body shouldBe ""
+    }
+  }
+
+  "delete /?q=XXX" should "return a feedback message" in {
+    (app.delete(_: String)) expects "*:*" once() returning
+      Success("xxx")
+    delete("/?q=*:*") {
+      status shouldBe SC_OK
+      body shouldBe "xxx"
+    }
+  }
+
+  it should "return BAD REQUEST with an invalid query" in {
+    // TODO check the error bubbles up from solrClient.deleteByQuery
+    (app.delete(_: String)) expects ":" once() returning
+      Failure(SolrBadRequestException("Cannot parse ':'",new Exception))
+    delete("/?q=:") {
+      status shouldBe SC_BAD_REQUEST
+      body should startWith("Cannot parse ':'")
+    }
+  }
+
+  it should "complain about the required query" in {
+    delete("/") {
+      status shouldBe SC_BAD_REQUEST
+      body shouldBe "delete requires param 'q': a solr query"
+    }
+  }
+
+  "delete /:store[/:uuid]" should "return a feedback message with just a store" in {
+    (app.delete(_: String)) expects "easy_dataset_store_id:pdbs" once() returning
+      Success("xxx")
+    delete("/pdbs") {
+      status shouldBe SC_OK
+      body shouldBe "xxx"
+    }
+  }
+
+  it should "return a feedback message with store and UUID" in {
+    (app.delete(_: String)) expects "easy_dataset_id:9da0541a-d2c8-432e-8129-979a9830b427" once() returning
+      Success("xxx")
+    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+      status shouldBe SC_OK
+      body shouldBe "xxx"
+    }
+  }
+
+  it should "return NOT FOUND with too many path elements" in {
+    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara") {
+      status shouldBe SC_NOT_FOUND
+      body should startWith("""Requesting "DELETE /pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara" on servlet "" but only have:""")
     }
   }
 
