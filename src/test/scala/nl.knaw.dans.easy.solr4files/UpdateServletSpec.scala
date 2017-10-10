@@ -38,7 +38,32 @@ class UpdateServletSpec extends TestSupportFixture
     }
   }
 
-  "post /update/:store/:uuid" should "return the number of updated files" in {
+  "post /init[/:store]" should "return a feedback message for all stores" in {
+    app.initAllStores _ expects() once() returning
+      Success("xxx")
+    post("/init") {
+      status shouldBe SC_OK
+      body shouldBe "xxx"
+    }
+  }
+
+  it should "return a feedback message for a single store" in {
+    (app.initSingleStore(_: String)) expects "pdbs" once() returning
+      Success("xxx")
+    post("/init/pdbs") {
+      status shouldBe SC_OK
+      body shouldBe "xxx"
+    }
+  }
+
+  it should "return NOT FOUND for an empty path" in {
+    post("/init/") {
+      status shouldBe SC_NOT_FOUND
+      body should startWith("""Requesting "POST /init/" on servlet "" but only have:""")
+    }
+  }
+
+  "post /update/:store/:uuid" should "return a feedback message" in {
     (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
       Success("12 files submitted")
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
@@ -64,9 +89,9 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   it should "return NOT FOUND with too many path elements" in {
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara") {
+    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/") {
       status shouldBe SC_NOT_FOUND
-      body should startWith("""Requesting "POST /update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara" on servlet "" but only have:""")
+      body should startWith("""Requesting "POST /update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/" on servlet "" but only have:""")
     }
   }
 
@@ -101,7 +126,7 @@ class UpdateServletSpec extends TestSupportFixture
   it should "return BAD REQUEST with an invalid query" in {
     // TODO check the error bubbles up from solrClient.deleteByQuery
     (app.delete(_: String)) expects ":" once() returning
-      Failure(SolrBadRequestException("Cannot parse ':'",new Exception))
+      Failure(SolrBadRequestException("Cannot parse ':'", new Exception))
     delete("/?q=:") {
       status shouldBe SC_BAD_REQUEST
       body should startWith("Cannot parse ':'")
@@ -134,9 +159,9 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   it should "return NOT FOUND with too many path elements" in {
-    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara") {
+    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/") {
       status shouldBe SC_NOT_FOUND
-      body should startWith("""Requesting "DELETE /pdbs/9da0541a-d2c8-432e-8129-979a9830b427/rabarbara" on servlet "" but only have:""")
+      body should startWith("""Requesting "DELETE /pdbs/9da0541a-d2c8-432e-8129-979a9830b427/" on servlet "" but only have:""")
     }
   }
 

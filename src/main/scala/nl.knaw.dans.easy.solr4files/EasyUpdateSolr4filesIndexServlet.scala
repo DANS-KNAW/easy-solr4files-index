@@ -15,15 +15,12 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.lang.Exception
-
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.http.HttpStatus._
 import org.scalatra._
 
 import scala.util.Try
-import scala.util.control.Exception
 import scalaj.http.HttpResponse
 
 class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet with DebugEnhancedLogging {
@@ -55,9 +52,11 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
   }
 
   post("/init") {
-    params.get("store")
-      .map(app.initSingleStore)
-      .getOrElse(respond(app.initAllStores()))
+    respond(app.initAllStores())
+  }
+
+  post("/init/:store") {
+    respond(app.initSingleStore(params("store")))
   }
 
   delete("/:store/:uuid") {
