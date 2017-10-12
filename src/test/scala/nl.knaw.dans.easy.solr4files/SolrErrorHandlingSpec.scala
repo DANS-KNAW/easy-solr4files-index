@@ -75,7 +75,7 @@ class SolrErrorHandlingSpec extends TestSupportFixture
   "submit" should "return the exception bubbling up from solrClient.request" in {
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe "solr update of file 9da0541a-d2c8-432e-8129-979a9830b427/data/path/to/a/random/video/hubble.mpg failed with mocked add"
-      status shouldBe SC_INTERNAL_SERVER_ERROR // MixedResults(mocked add)
+      status shouldBe SC_INTERNAL_SERVER_ERROR
     }
   }
 }
