@@ -104,13 +104,6 @@ class UpdateServletSpec extends TestSupportFixture
     }
   }
 
-  it should "return NOT FOUND with too many path elements" in {
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/") {
-      body should startWith("""Requesting "POST /update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/" on servlet "" but only have:""")
-      status shouldBe SC_NOT_FOUND
-    }
-  }
-
   it should "return NOT FOUND if something is not found for the n-th file, bag or store" in {
     // TODO check if exceptions from getContent indeed bubble up: refactor RichUrl into heavy cake trait
     (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
@@ -177,13 +170,6 @@ class UpdateServletSpec extends TestSupportFixture
     delete("/pdbs/rabarbera") {
       body shouldBe "Invalid UUID string: rabarbera"
       status shouldBe SC_BAD_REQUEST
-    }
-  }
-
-  it should "return NOT FOUND with too many path elements" in {
-    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427/") {
-      body should startWith("""Requesting "DELETE /pdbs/9da0541a-d2c8-432e-8129-979a9830b427/" on servlet "" but only have:""")
-      status shouldBe SC_NOT_FOUND
     }
   }
 
