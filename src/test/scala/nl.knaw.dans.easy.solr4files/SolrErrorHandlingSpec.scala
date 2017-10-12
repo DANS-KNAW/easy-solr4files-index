@@ -40,11 +40,11 @@ class SolrErrorHandlingSpec extends TestSupportFixture
   })
   private class StubbedWiring extends {} with ApplicationWiring(configuration) {
     override lazy val solrClient: SolrClient = new SolrClient() {
-      // can't use mock because SolrClient has a final method, now we can't count the actual calls
-
+      // can't use mock because SolrClient has a final method
       override def deleteByQuery(q: String): UpdateResponse = {
-        case class MockedParseException() extends Exception
-        throw new HttpSolrClient.RemoteSolrException("mockedHost", 0, "mocked message", MockedParseException())
+        throw new HttpSolrClient.RemoteSolrException("mockedHost", 0, "mocked message", new Exception()) {
+          override def getRootThrowable: String = "org.apache.solr.parser.ParseException"
+        }
       }
 
       override def commit(): UpdateResponse =
@@ -66,8 +66,8 @@ class SolrErrorHandlingSpec extends TestSupportFixture
 
   it should "return the exception bubbling up from solrClient.deleteByQuery" in {
     delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
-      status shouldBe SC_INTERNAL_SERVER_ERROR // TODO should be bad request
-      body shouldBe ""
+      body shouldBe "Error from server at mockedHost: mocked message"
+      status shouldBe SC_BAD_REQUEST
     }
   }
 }
