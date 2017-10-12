@@ -21,7 +21,7 @@ SYNOPSIS
 
 ### HTTP service
 
-When started with the sub-command `run-service` an HTTP API becomes available summarized in the following table.
+When started with the sub-command `run-service` a REST API becomes available summarized in the following table.
 "Method" refers to the HTTP method used in the request. "Path" is the path pattern used. 
 Placeholders for variables start with a colon, optional parts are enclosed in square brackets.
 
