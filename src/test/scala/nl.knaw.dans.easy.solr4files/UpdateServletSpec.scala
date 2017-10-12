@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.util.UUID
+
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
@@ -71,7 +73,7 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   "post /update/:store/:uuid" should "return a feedback message" in {
-    (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
       Success("12 files submitted")
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe "12 files submitted"
@@ -86,8 +88,15 @@ class UpdateServletSpec extends TestSupportFixture
     }
   }
 
+  it should "return BAD REQUEST with an invalid uuid" in {
+    post("/update/pdbs/rabarbera") {
+      body shouldBe "Invalid UUID string: rabarbera"
+      status shouldBe SC_BAD_REQUEST
+    }
+  }
+
   it should "return NOT FOUND if something is not found for the first file, bag or store" in {
-    (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
       Failure(createHttpException(SC_NOT_FOUND))
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe "getContent(url)"
@@ -104,7 +113,7 @@ class UpdateServletSpec extends TestSupportFixture
 
   it should "return NOT FOUND if something is not found for the n-th file, bag or store" in {
     // TODO check if exceptions from getContent indeed bubble up: refactor RichUrl into heavy cake trait
-    (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
       Failure(MixedResultsException(Seq.empty, createHttpException(SC_NOT_FOUND)))
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe "Log files should show which actions succeeded. Finally failed with: getContent(url)"
@@ -113,7 +122,7 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   it should "return INTERNAL SERVER ERROR in case of unexpected errors" in {
-    (app.update(_: String, _: String)) expects("pdbs", "9da0541a-d2c8-432e-8129-979a9830b427") once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
       Failure(new Exception())
     post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe ""
@@ -161,6 +170,13 @@ class UpdateServletSpec extends TestSupportFixture
     delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       body shouldBe "xxx"
       status shouldBe SC_OK
+    }
+  }
+
+  it should "return BAD REQUEST with an invalid UUID" in {
+    delete("/pdbs/rabarbera") {
+      body shouldBe "Invalid UUID string: rabarbera"
+      status shouldBe SC_BAD_REQUEST
     }
   }
 

@@ -16,6 +16,7 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.net.{ URL, URLEncoder }
+import java.util.UUID
 
 import nl.knaw.dans.easy.solr4files.{ FileToShaMap, SolrLiterals, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -25,7 +26,7 @@ import scala.util.matching.Regex
 import scala.xml.Elem
 
 case class Bag(storeName: String,
-               bagId: String,
+               bagId: UUID,
                private val vault: Vault
               ) extends DebugEnhancedLogging {
 
@@ -75,6 +76,6 @@ case class Bag(storeName: String,
   val solrLiterals: SolrLiterals = Seq(
     ("dataset_store_id", storeName),
     ("dataset_depositor_id", getDepositor),
-    ("dataset_id", bagId)
+    ("dataset_id", bagId.toString)
   )
 }

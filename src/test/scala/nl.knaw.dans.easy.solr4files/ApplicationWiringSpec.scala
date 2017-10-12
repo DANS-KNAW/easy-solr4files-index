@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URLEncoder
 import java.nio.file.Paths
+import java.util.UUID
 
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
@@ -31,7 +32,7 @@ import scala.util.{ Failure, Success }
 class ApplicationWiringSpec extends TestSupportFixture {
 
   private val store = "pdbs"
-  private val uuid = "9da0541a-d2c8-432e-8129-979a9830b427"
+  private val uuid = UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")
 
   private class MockedAndStubbedWiring extends ApplicationWiring(createConfig("vault")) {
     override lazy val solrClient: SolrClient = new SolrClient() {
@@ -89,7 +90,7 @@ class ApplicationWiringSpec extends TestSupportFixture {
   "initSingleStore" should "call the stubbed ApplicationWiring.update method" in {
     val result = new ApplicationWiring(createConfig("vaultBagIds")) {
       // vaultBagIds/bags can't be a file and directory so we need a stub, a failure demonstrates it's called
-      override def update(store: String, uuid: String) =
+      override def update(store: String, uuid: UUID) =
         Failure(new Exception("stubbed ApplicationWiring.update"))
     }.initSingleStore(store)
 

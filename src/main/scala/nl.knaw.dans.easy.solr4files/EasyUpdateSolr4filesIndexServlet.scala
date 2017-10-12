@@ -15,12 +15,14 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.util.UUID
+
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.http.HttpStatus._
 import org.scalatra._
 
-import scala.util.Try
+import scala.util.{ Failure, Try }
 import scalaj.http.HttpResponse
 
 class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet with DebugEnhancedLogging {
@@ -47,8 +49,18 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
       }
   }
 
+  private def triedUuid = {
+    Try { UUID.fromString(params("uuid")) }
+  }
+
+  private def badUuid(e: Throwable) = {
+    BadRequest(e.getMessage)
+  }
+
   post("/update/:store/:uuid") {
-    respond(app.update(params("store"), params("uuid")))
+    triedUuid
+      .map(uuid => respond(app.update(params("store"), uuid)))
+      .getOrRecover(badUuid)
   }
 
   post("/init") {
@@ -60,7 +72,9 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
   }
 
   delete("/:store/:uuid") {
-    respond(app.delete(s"easy_dataset_id:${ params("uuid") }"))
+    triedUuid
+      .map(uuid => respond(app.delete(s"easy_dataset_id:$uuid")))
+      .getOrRecover(badUuid)
   }
 
   delete("/:store") {

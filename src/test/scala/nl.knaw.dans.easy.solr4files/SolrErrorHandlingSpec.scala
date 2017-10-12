@@ -65,7 +65,7 @@ class SolrErrorHandlingSpec extends TestSupportFixture
 
 
   it should "return the exception bubbling up from solrClient.deleteByQuery" in {
-    delete("/xxx/yyy") {
+    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
       status shouldBe SC_INTERNAL_SERVER_ERROR // TODO should be bad request
       body shouldBe ""
     }
