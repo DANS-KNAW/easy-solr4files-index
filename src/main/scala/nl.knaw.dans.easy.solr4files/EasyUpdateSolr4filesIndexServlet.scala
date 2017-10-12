@@ -45,7 +45,9 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_NOT_FOUND => NotFound(msgPrefix + message)
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(msgPrefix + message)
         case MixedResultsException(_, HttpStatusException(message, r: HttpResponse[String])) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(msgPrefix + message)
-        case e => InternalServerError(e.getMessage) // TODO no or neutral message for to be implemented public search
+        case e =>
+          e.printStackTrace()
+          InternalServerError(e.getMessage) // TODO no or neutral message for to be implemented public search
       }
   }
 

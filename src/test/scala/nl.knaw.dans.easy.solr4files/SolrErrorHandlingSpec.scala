@@ -34,7 +34,7 @@ class SolrErrorHandlingSpec extends TestSupportFixture
   with MockFactory {
 
   private val configuration = new Configuration("", new PropertiesConfiguration() {
-    private val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/vault/stores/pdbs").toAbsolutePath.toString, "UTF8")
+    private val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/vault").toAbsolutePath.toString, "UTF8")
     addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
     addProperty("vault.url", s"file:///$vaultPath/")
   })
@@ -42,32 +42,40 @@ class SolrErrorHandlingSpec extends TestSupportFixture
     override lazy val solrClient: SolrClient = new SolrClient() {
       // can't use mock because SolrClient has a final method
       override def deleteByQuery(q: String): UpdateResponse = {
-        throw new HttpSolrClient.RemoteSolrException("mockedHost", 0, "mocked message", new Exception()) {
-          override def getRootThrowable: String = "org.apache.solr.parser.ParseException"
-        }
+        if (q.contains("f13d768b-f80c-4b44-a97a-f3557c26d894"))
+          throw new HttpSolrClient.RemoteSolrException("mockedHost", 0, "mocked delete", new Exception()) {
+            override def getRootThrowable: String = "org.apache.solr.parser.ParseException"
+          }
+        else new UpdateResponse
       }
 
       override def commit(): UpdateResponse =
-        throw new Exception("not expected call")
+        new UpdateResponse
 
       override def add(doc: SolrInputDocument): UpdateResponse =
-        throw new Exception("not expected call")
+        throw new Exception("mocked add") // TODO something like invalid document
 
       override def close(): Unit = ()
 
       override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] =
-        throw new Exception("not expected call")
+        throw new Exception("mocked request")
     }
   }
 
   private val app = new EasyUpdateSolr4filesIndexApp(new StubbedWiring)
   addServlet(new EasyUpdateSolr4filesIndexServlet(app), "/*")
 
-
-  it should "return the exception bubbling up from solrClient.deleteByQuery" in {
-    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
-      body shouldBe "Error from server at mockedHost: mocked message"
+  "delete" should "return the exception bubbling up from solrClient.deleteByQuery" in {
+    delete("/pdbs/f13d768b-f80c-4b44-a97a-f3557c26d894") {
+      body shouldBe "Error from server at mockedHost: mocked delete"
       status shouldBe SC_BAD_REQUEST
+    }
+  }
+
+  "submit" should "return the exception bubbling up from solrClient.request" in {
+    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+      body shouldBe "solr update of file 9da0541a-d2c8-432e-8129-979a9830b427/data/path/to/a/random/video/hubble.mpg failed with mocked add"
+      status shouldBe SC_INTERNAL_SERVER_ERROR // MixedResults(mocked add)
     }
   }
 }
