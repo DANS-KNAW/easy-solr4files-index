@@ -61,18 +61,27 @@
     register: bag_dir_stat
 
   - name: Copy test-bags to server
-    copy:
+    copy: # for now we have just one test bag, otherwise copy pdbs/bags into pdbs/ab and rename it
       src: "../../test/resources/vault/stores/pdbs/bags/9da0541a-d2c8-432e-8129-979a9830b427"
       dest: "{{ stores_dir }}/pdbs/ab/123456789012345678901234567890"
       mode: "0775"
       directory_mode: "0775"
-    # TODO skip all git-ignored files, not just hidden files in the bags folder
-    # workaround for now: just the one bag we have at the moment
     when: "bag_dir_stat.stat.exists == False"
-    # TODO add test bag with:
-    #  a file with spaces and other special characters in its name
-    #  an image with dates that failed with https://github.com/DANS-KNAW/easy-dtap/pull/131
-    #  a pakbon and pdf with metadata that gets indexed as email_ss
+
+  - name: Find hidden files in or between test bags
+    find:
+      paths: "{{ stores_dir }}"
+      patterns: ".DS_Store"
+      hidden: "yes"
+      recurse: "yes"
+    register: hidden_files
+
+  - name: Remove hidden files from test bags
+    file:
+      path: "{{ item.path }}"
+      state: "absent"
+    with_items: "{{ hidden_files.files }}"
+
 
   - service:
       name: "easy-bag-store"
