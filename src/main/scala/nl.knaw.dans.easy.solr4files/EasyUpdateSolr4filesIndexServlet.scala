@@ -49,7 +49,7 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
       }
   }
 
-  private def triedUuid = {
+  private def getUUID = {
     Try { UUID.fromString(params("uuid")) }
   }
 
@@ -58,7 +58,7 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
   }
 
   post("/update/:store/:uuid") {
-    triedUuid
+    getUUID
       .map(uuid => respond(app.update(params("store"), uuid)))
       .getOrRecover(badUuid)
   }
@@ -72,7 +72,7 @@ class EasyUpdateSolr4filesIndexServlet(app: EasyUpdateSolr4filesIndexApp) extend
   }
 
   delete("/:store/:uuid") {
-    triedUuid
+    getUUID
       .map(uuid => respond(app.delete(s"easy_dataset_id:$uuid")))
       .getOrRecover(badUuid)
   }
