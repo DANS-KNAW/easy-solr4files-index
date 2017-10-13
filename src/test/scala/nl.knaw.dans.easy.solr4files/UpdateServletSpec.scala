@@ -40,6 +40,8 @@ class UpdateServletSpec extends TestSupportFixture
   private val app = mock[App]
   addServlet(new EasyUpdateSolr4filesIndexServlet(app), "/*")
 
+  private val uuid = UUID.randomUUID()
+
   "get /" should "return the message that the service is running" in {
     get("/") {
       body shouldBe "EASY File Index is running."
@@ -73,9 +75,9 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   "post /update/:store/:uuid" should "return a feedback message" in {
-    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", uuid) once() returning
       Success("12 files submitted")
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+    post(s"/update/pdbs/$uuid") {
       body shouldBe "12 files submitted"
       status shouldBe SC_OK
     }
@@ -96,9 +98,9 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   it should "return NOT FOUND if something is not found for the first file, bag or store" in {
-    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", uuid) once() returning
       Failure(createHttpException(SC_NOT_FOUND))
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+    post(s"/update/pdbs/$uuid") {
       body shouldBe "getContent(url)"
       status shouldBe SC_NOT_FOUND
     }
@@ -106,18 +108,18 @@ class UpdateServletSpec extends TestSupportFixture
 
   it should "return NOT FOUND if something is not found for the n-th file, bag or store" in {
     // TODO check if exceptions from getContent indeed bubble up: refactor RichUrl into heavy cake trait
-    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", uuid) once() returning
       Failure(MixedResultsException(Seq.empty, createHttpException(SC_NOT_FOUND)))
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+    post(s"/update/pdbs/$uuid") {
       body shouldBe "Log files should show which actions succeeded. Finally failed with: getContent(url)"
       status shouldBe SC_NOT_FOUND
     }
   }
 
   it should "return INTERNAL SERVER ERROR in case of unexpected errors" in {
-    (app.update(_: String, _: UUID)) expects("pdbs", UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")) once() returning
+    (app.update(_: String, _: UUID)) expects("pdbs", uuid) once() returning
       Failure(new Exception())
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+    post(s"/update/pdbs/$uuid") {
       body shouldBe ""
       status shouldBe SC_INTERNAL_SERVER_ERROR
     }
@@ -158,9 +160,9 @@ class UpdateServletSpec extends TestSupportFixture
   }
 
   it should "return a feedback message with store and UUID" in {
-    (app.delete(_: String)) expects "easy_dataset_id:9da0541a-d2c8-432e-8129-979a9830b427" once() returning
+    (app.delete(_: String)) expects s"easy_dataset_id:$uuid" once() returning
       Success("xxx")
-    delete("/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
+    delete("/pdbs/" + uuid) {
       body shouldBe "xxx"
       status shouldBe SC_OK
     }

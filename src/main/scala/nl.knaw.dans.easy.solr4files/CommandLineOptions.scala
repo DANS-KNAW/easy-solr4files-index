@@ -57,7 +57,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
   private val defaultBagStore = Some(configuration.properties.getString("default.bag-store", "MISSING_BAG_STORE"))
 
-  private def bagId: ValueConverter[UUID] = {
+  private implicit def bagId: ValueConverter[UUID] = {
     singleArgConverter {
       case s => UUID.fromString(s)
     }
@@ -70,7 +70,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
       default = defaultBagStore,
       short = 's',
       descr = "Name of the bag store")
-    val bagUuid: ScallopOption[UUID] = trailArg[UUID](name = "bag-uuid", required = true)(bagId)
+    val bagUuid: ScallopOption[UUID] = trailArg[UUID](name = "bag-uuid", required = true)
     footer(SUBCOMMAND_SEPARATOR)
   }
   val delete = new Subcommand("delete") {

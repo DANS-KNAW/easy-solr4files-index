@@ -15,8 +15,7 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URLEncoder
-import java.nio.file.Paths
+import java.net.URI
 
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.http.HttpStatus._
@@ -25,35 +24,37 @@ import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.common.util.NamedList
-import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
 class SolrErrorHandlingSpec extends TestSupportFixture
   with ServletFixture
-  with ScalatraSuite
-  with MockFactory {
+  with ScalatraSuite {
 
-  private val configuration = new Configuration("", new PropertiesConfiguration() {
-    private val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/vault").toAbsolutePath.toString, "UTF8")
-    addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
-    addProperty("vault.url", s"file:///$vaultPath/")
-  })
-  private class StubbedWiring extends {} with ApplicationWiring(configuration) {
+  private class StubbedWiring extends {
+    private val vault = mockVault("vault")
+  } with ApplicationWiring(new Configuration("", new PropertiesConfiguration() {
+    addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles") // to survive the wiring constructor
+    addProperty("vault.url", vault.vaultBaseUri.toURL.toString)
+  })) {
+    override val vaultBaseUri: URI = vault.vaultBaseUri
     override lazy val solrClient: SolrClient = new SolrClient() {
       // can't use mock because SolrClient has a final method
-      override def deleteByQuery(q: String): UpdateResponse = {
-        if (q.contains("f13d768b-f80c-4b44-a97a-f3557c26d894"))
+
+      override def deleteByQuery(q: String): UpdateResponse = q match {
+        case ":" =>
           throw new HttpSolrClient.RemoteSolrException("mockedHost", 0, "mocked delete", new Exception()) {
+            // try the query manually at deasy.dans.knaw.nl:8983/solr/#/fileitems/query
+            // and see error.metadata.root-error-class in the response
             override def getRootThrowable: String = "org.apache.solr.parser.ParseException"
           }
-        else new UpdateResponse
+        case _ => new UpdateResponse
       }
 
       override def commit(): UpdateResponse =
         new UpdateResponse
 
       override def add(doc: SolrInputDocument): UpdateResponse =
-        throw new Exception("mocked add") // TODO something like invalid document
+        throw new Exception("mocked add")
 
       override def close(): Unit = ()
 
@@ -66,15 +67,16 @@ class SolrErrorHandlingSpec extends TestSupportFixture
   addServlet(new EasyUpdateSolr4filesIndexServlet(app), "/*")
 
   "delete" should "return the exception bubbling up from solrClient.deleteByQuery" in {
-    delete("/pdbs/f13d768b-f80c-4b44-a97a-f3557c26d894") {
+    delete("/?q=:") {
       body shouldBe "Error from server at mockedHost: mocked delete"
       status shouldBe SC_BAD_REQUEST
     }
   }
 
   "submit" should "return the exception bubbling up from solrClient.request" in {
-    post("/update/pdbs/9da0541a-d2c8-432e-8129-979a9830b427") {
-      body shouldBe "solr update of file 9da0541a-d2c8-432e-8129-979a9830b427/data/path/to/a/random/video/hubble.mpg failed with mocked add"
+    val testResourcesUUID = "9da0541a-d2c8-432e-8129-979a9830b427"
+    post(s"/update/pdbs/$testResourcesUUID") {
+      body shouldBe s"solr update of file $testResourcesUUID/data/path/to/a/random/video/hubble.mpg failed with mocked add"
       status shouldBe SC_INTERNAL_SERVER_ERROR
     }
   }
