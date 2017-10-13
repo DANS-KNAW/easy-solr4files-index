@@ -34,7 +34,7 @@ trait Vault extends DebugEnhancedLogging {
   } yield lines.map { line =>
     val trimmed = line.trim.replace("<", "").replace(">", "")
     Paths
-      .get(new URI(trimmed).getPath) // TODO? catch (corrupt bag-store)
+      .get(new URI(trimmed).getPath)
       .getFileName.toString
   }
 
@@ -44,7 +44,7 @@ trait Vault extends DebugEnhancedLogging {
     lines <- storeURI.toURL.readLines
   } yield lines
     .withFilter(_.trim.nonEmpty)
-    .map(str => UUID.fromString(str.trim)) // TODO? catch (corrupt bag-store)
+    .map(str => UUID.fromString(str.trim))
 
   def getSize(storeName: String, bagId: UUID, path: String): Long = {
     fileURL(storeName, bagId, path).map(_.getContentLength).getOrElse(-1L)

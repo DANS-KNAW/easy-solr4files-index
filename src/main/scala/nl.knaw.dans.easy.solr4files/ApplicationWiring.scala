@@ -53,7 +53,7 @@ class ApplicationWiring(configuration: Configuration)
       ddmXML <- bag.loadDDM
       ddm = new DDM(ddmXML)
       filesXML <- bag.loadFilesXML
-      _ <- deleteDocuments(s"id:${bag.bagId}*")
+      _ <- deleteDocuments(s"id:${ bag.bagId }*")
       feedbackMessage <- updateFiles(bag, ddm, filesXML)
       _ <- commit()
     } yield feedbackMessage

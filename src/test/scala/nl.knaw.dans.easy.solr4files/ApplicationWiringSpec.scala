@@ -15,11 +15,8 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URLEncoder
-import java.nio.file.Paths
 import java.util.UUID
 
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
@@ -31,18 +28,19 @@ import scala.util.{ Failure, Success }
 
 class ApplicationWiringSpec extends TestSupportFixture {
 
-  private val store = "pdbs"
+  // values matching the vault mocked in test/resources
   private val uuid = UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")
+  private val store = "pdbs"
 
   private class MockedAndStubbedWiring extends ApplicationWiring(createConfig("vault")) {
     override lazy val solrClient: SolrClient = new SolrClient() {
-      // can't use mock because SolrClient has a final method, now we can't count the actual calls
+      // can't use mock because SolrClient has a final method
 
       override def deleteByQuery(q: String): UpdateResponse = new UpdateResponse
 
       override def commit(): UpdateResponse = new UpdateResponse
 
-      override def  add(doc: SolrInputDocument): UpdateResponse = new UpdateResponse {
+      override def add(doc: SolrInputDocument): UpdateResponse = new UpdateResponse {
         override def getStatus = 200
       }
 
@@ -104,13 +102,5 @@ class ApplicationWiringSpec extends TestSupportFixture {
     }.initAllStores()
 
     inside(result) { case Failure(e) => e should have message "stubbed ApplicationWiring.initSingleStore" }
-  }
-
-  private def createConfig(testDir: String) = {
-    val vaultPath = URLEncoder.encode(Paths.get(s"src/test/resources/$testDir").toAbsolutePath.toString, "UTF8")
-    new Configuration("", new PropertiesConfiguration() {
-      addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles")
-      addProperty("vault.url", s"file:///$vaultPath/")
-    })
   }
 }

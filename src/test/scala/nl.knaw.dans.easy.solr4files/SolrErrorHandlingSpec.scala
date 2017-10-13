@@ -15,9 +15,6 @@
  */
 package nl.knaw.dans.easy.solr4files
 
-import java.net.URI
-
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.http.HttpStatus._
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.client.solrj.response.UpdateResponse
@@ -30,13 +27,7 @@ class SolrErrorHandlingSpec extends TestSupportFixture
   with ServletFixture
   with ScalatraSuite {
 
-  private class StubbedWiring extends {
-    private val vault = mockVault("vault")
-  } with ApplicationWiring(new Configuration("", new PropertiesConfiguration() {
-    addProperty("solr.url", "http://deasy.dans.knaw.nl:8983/solr/easyfiles") // to survive the wiring constructor
-    addProperty("vault.url", vault.vaultBaseUri.toURL.toString)
-  })) {
-    override val vaultBaseUri: URI = vault.vaultBaseUri
+  private class StubbedWiring extends ApplicationWiring(createConfig("vault")) {
     override lazy val solrClient: SolrClient = new SolrClient() {
       // can't use mock because SolrClient has a final method
 
