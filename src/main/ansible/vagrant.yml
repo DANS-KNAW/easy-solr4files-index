@@ -148,6 +148,29 @@
       state: restarted
       enabled: yes
 
+########### ldap
+
+- hosts: "test"
+  vars:
+    shared_ldap_admin_user: "cn=ldapadmin,dc=dans,dc=knaw,dc=nl"
+    shared_ldap_url: "ldap://localhost"
+    easy_ldap_dir_dans_schema_location: "/etc/openldap/slapd.d/cn=config/cn=schema/cn={12}dans.ldif"
+    easy_ldap_dir_easy_schema_location: "/etc/openldap/slapd.d/cn=config/cn=schema/cn={13}easy.ldif"
+    easy_ldap_dir_easyadmin_email: "noreply@whatever.dans.knaw.nl"
+    easy_ldap_dir_easyadmin_password: "easyadmin"
+    easy_ldap_dir_ldapadmin_password: "ldapadmin"
+    easy_test_users_ldapadmin_password: "ldapadmin"
+  become: yes
+  tasks:
+
+  - name: Install Ldap
+    include_role:
+      name: "dans.easy-ldap-dir"
+
+  - name: Install easy users
+    include_role:
+      name: "dans.easy-test-users"
+
 ########### the intended service
 
 - hosts: "test"

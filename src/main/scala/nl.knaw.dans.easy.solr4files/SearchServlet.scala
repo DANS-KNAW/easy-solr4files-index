@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.net.URLDecoder
+
 import nl.knaw.dans.easy.solr4files.components.User
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -52,11 +54,13 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     // no command line equivalent, use http://localhost:8983/solr/#/fileitems/query
     // or for example:           curl 'http://localhost:8983/solr/fileitems/query?q=*'
     (params.get("text"), app.authenticate(new BasicAuthRequest(request))) match {
-      case (None, _) => BadRequest("filesearch requires param 'text' (a solr dismax query), " + params.got)
-      case (Some(q), Success(user)) => respond(app.search(createQuery(q, user))) // TODO add message when owner like in the webui?
+      case (None, _) => BadRequest("filesearch requires param 'text' (a solr dismax query), got " + params.asString)
+      case (Some(q), Success(user)) => respond(app.search(createQuery(q, user)))
       case (Some(_), Failure(InvalidCredentialsException(_, _))) => Unauthorized()
       case (Some(_), Failure(AuthorisationNotAvailableException(_))) => ServiceUnavailable("Authentication service not available, try anonymous search")
-      case (Some(_), Failure(_)) => InternalServerError()
+      case (Some(_), Failure(t)) =>
+        logger.error(t.getMessage, t)
+        InternalServerError()
     }
   }
 
@@ -70,17 +74,18 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     new SolrQuery() {
       setQuery(query)
       user match {
-        case Some(User(_,_,true,_)) => // archivist: no filters
-        case Some(User(_,_,_,true)) => // admin: no filters
-          // TODO filterQuery for groups
+        case Some(User(_, _, true, _)) => // archivist: no filters
+        case Some(User(_, _, _, true)) => // admin: no filters
+        // TODO filterQuery for groups
         case None =>
-          addFilterQuery(s"$toAnonymous +$toKnown")
+          addFilterQuery(s"$toAnonymous OR $toKnown")
           addFilterQuery(available)
-        case Some(User(id,_,_,_)) =>
+        case Some(User(id, _, _, _)) =>
           // TODO reuse cache of partial filters
           val own = "easy_dataset_depositor_id:" + id
-          addFilterQuery(s"$toAnonymous +$toKnown +$own")
-          addFilterQuery(s"$available +$own")
+          addFilterQuery(s"$toAnonymous OR $toKnown OR $own")
+          addFilterQuery(s"$available OR $own")
+        // TODO add message (you can see ... because you are the owner) like in the webui?
       }
       setFields("easy_dataset_*", "easy_file_*") // TODO user configurable like rows and start
       setStart(start)
@@ -89,6 +94,10 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
       // setFacet... setMoreLikeThis... setHighlight... setDebug... etc
 
       set("defType", queryParser)
+      // TODO downgrade to debug logging
+      logger.info(s"User $user requested: " + params.asString)
+      logger.info("request passed on as: " + toString)
+      logger.info("decoded: " + URLDecoder.decode(toString,"UTF8"))
     }
   }
 }
