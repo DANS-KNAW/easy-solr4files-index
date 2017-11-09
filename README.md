@@ -22,7 +22,7 @@ SYNOPSIS
     easy-update-solr4files-index run-service
     easy-update-solr4files-index delete <solr-query>
     
-    Some examples of solr queries:
+    Some examples of solr queries for the delete command:
     
       everything:            '*:*'
       all bags of one store: 'easy_dataset_store_id:pdbs'
@@ -36,14 +36,16 @@ When started with the sub-command `run-service` a REST API becomes available sum
 "Method" refers to the HTTP method used in the request. "Path" is the path pattern used. 
 Placeholders for variables start with a colon, optional parts are enclosed in square brackets.
 
-Method   | Path                             | Args |Action
----------|----------------------------------|------|------------------------------------
-`GET`    | `/fileindex`                     |      | Return a simple message to indicate that the service is up: "EASY File index is running."
-`POST`   | `/fileindex/init[/:store]`       |      | Index all bag stores or just one. Eventual obsolete items are cleared.
-`POST`   | `/fileindex/update/:store/:uuid` |      | Index all files of one bag. Eventual obsolete file items are cleared.
-`DELETE` | `/fileindex/:store[/:uuid]`      |      | Remove all items or the items of a store or bag.
-`DELETE` | `/fileindex/`                    | q    | Remove the items matching the mandatory solr query.
-`GET`    | `/filesearch`                    | text | Find documents matching the [dismax] query.
+Method   | Path                             | Args  |Action
+---------|----------------------------------|-------|------------------------------------
+`GET`    | `/fileindex`                     |       | Return a simple message to indicate that the service is up: "EASY File index is running."
+`POST`   | `/fileindex/init[/:store]`       |       | Index all bag stores or just one. Eventual obsolete items are cleared.
+`POST`   | `/fileindex/update/:store/:uuid` |       | Index all files of one bag. Eventual obsolete file items are cleared.
+`DELETE` | `/fileindex/:store[/:uuid]`      |       | Remove all items or the items of a store or bag.
+`DELETE` | `/fileindex/`                    | q     | Remove the items matching the mandatory solr query.
+`GET`    | `/filesearch`                    | text  | Mandatory, a [dismax] query.
+         |                                  | skip  | Optional, default 0 (zero), the number of rows of the query result to skip in the response.
+         |                                  | limit | Optional, default 10, the maximum number of rows to return in the response.
 
 The following example would delete a bag
 
