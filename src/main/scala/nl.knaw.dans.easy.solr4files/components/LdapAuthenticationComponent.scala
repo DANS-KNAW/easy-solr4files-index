@@ -27,6 +27,8 @@ import scala.util.{ Failure, Try }
 
 trait LdapAuthenticationComponent extends AuthenticationComponent {
   val usersParentEntry: String
+  val securityPrincipal: String
+  val securityCredentials: String
   val ldapProviderUrl: URI
   val initialContextFactory: String = "com.sun.jndi.ldap.LdapCtxFactory"
 
@@ -50,11 +52,13 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
     }
 
     private def ldapEnv(userName: String, password: String) = {
+      // TODO don't log password
+      logger.info(s"PROVIDER=${ldapProviderUrl.toASCIIString} PRINCIPAL=$securityPrincipal PASWORD=$password FACTORY=$initialContextFactory")
       new util.Hashtable[String, String]() {
         put(PROVIDER_URL, ldapProviderUrl.toASCIIString)
         put(SECURITY_AUTHENTICATION, "simple")
-        put(SECURITY_PRINCIPAL, s"uid=$userName, $usersParentEntry")
-        put(SECURITY_CREDENTIALS, password)
+        put(SECURITY_PRINCIPAL, securityPrincipal)
+        put(SECURITY_CREDENTIALS, securityCredentials)
         put(INITIAL_CONTEXT_FACTORY, initialContextFactory)
       }
     }
