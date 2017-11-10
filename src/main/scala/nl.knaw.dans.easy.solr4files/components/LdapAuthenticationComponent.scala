@@ -15,51 +15,69 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.URI
+import java.net.URL
+import java.security.MessageDigest
 import java.util
-import javax.naming.Context._
-import javax.naming._
-import javax.naming.ldap.InitialLdapContext
+import javax.naming.directory.{ SearchControls, SearchResult }
+import javax.naming.ldap.{ InitialLdapContext, LdapContext }
+import javax.naming.{ AuthenticationException, Context, NoPermissionException, ServiceUnavailableException }
 
-import nl.knaw.dans.easy.solr4files.{ AuthorisationNotAvailableException, InvalidCredentialsException }
-
-import scala.util.{ Failure, Try }
+import nl.knaw.dans.easy.solr4files.{ AuthorisationNotAvailableException, InvalidUserPasswordException }
+import java.util.Base64
+import java.nio.charset.StandardCharsets
+import scala.collection.JavaConverters._
+import scala.util.{ Failure, Success, Try }
 
 trait LdapAuthenticationComponent extends AuthenticationComponent {
-  val usersParentEntry: String
-  val securityPrincipal: String
-  val securityCredentials: String
-  val ldapProviderUrl: URI
-  val initialContextFactory: String = "com.sun.jndi.ldap.LdapCtxFactory"
+  val ldapContext: Try[LdapContext]
+  val ldapUsersEntry: String
 
   trait LdapAuthentication extends Authentication {
 
-    def getUser(userName: String, password: String): Try[User] = Try {
-      val ctxt = new InitialLdapContext(ldapEnv(userName, password), null)
-      // TODO fetch admin/archivist, group(s) from LDAP (getAtributes("...") from the context?)
-      // see (don't use) easy-app/lib-deprecated/dans-ldap/src/main/java/nl/knaw/dans/common/ldap/repo/LdapMapper.java
-      User(userName)
-    }.recoverWith {
-      case t: ServiceUnavailableException =>
-        Failure(AuthorisationNotAvailableException(t))
-      case t: NoPermissionException =>
-        Failure(InvalidCredentialsException(userName, t))
-      case t: AuthenticationException =>
-        Failure(InvalidCredentialsException(userName, t))
-      case t =>
-        logger.debug("Unexpected exception", t)
-        Failure(new RuntimeException("Error trying to authenticate", t))
-    }
+    def getUser(userName: String, password: String): Try[User] = {
 
-    private def ldapEnv(userName: String, password: String) = {
-      // TODO don't log password
-      logger.info(s"PROVIDER=${ldapProviderUrl.toASCIIString} PRINCIPAL=$securityPrincipal PASWORD=$password FACTORY=$initialContextFactory")
-      new util.Hashtable[String, String]() {
-        put(PROVIDER_URL, ldapProviderUrl.toASCIIString)
-        put(SECURITY_AUTHENTICATION, "simple")
-        put(SECURITY_PRINCIPAL, securityPrincipal)
-        put(SECURITY_CREDENTIALS, securityCredentials)
-        put(INITIAL_CONTEXT_FACTORY, initialContextFactory)
+      def toUser(searchResult: SearchResult) = {
+        val roles = searchResult.getAttributes.get("easyRoles")
+        User(userName,
+          isArchivist = roles.contains("ARCHIVIST"),
+          isAdmin = roles.contains("ADMIN"),
+          groups = searchResult.getAttributes.get("easyGroups")
+            .getAll.asScala.toList.map(_.toString)
+        )
+      }
+
+      val hashedPassword = {
+        val algorithm = "SHA"
+        val md = MessageDigest.getInstance(algorithm.toUpperCase)
+        md.update(password.getBytes)
+        val base64 = Base64.getEncoder.encodeToString(md.digest)
+        logger.info("verifying hashed password")
+        s"{$algorithm}$base64"
+      }
+      logger.info(s"looking for user [$userName] with hashedPassword [$hashedPassword]")
+
+      val searchFilter = s"(&(objectClass=easyUser)(uid=$userName))"
+      val searchControls = new SearchControls() {
+        setSearchScope(SearchControls.SUBTREE_SCOPE)
+      }
+      ldapContext.map {
+        _.search(ldapUsersEntry, searchFilter, searchControls).asScala.toList
+          .headOption
+          .filter(_.getAttributes.get("userPassword").contains(hashedPassword))
+          .map(toUser)
+      }.recoverWith {
+        case t: ServiceUnavailableException =>
+          Failure(AuthorisationNotAvailableException(t))
+        case t: NoPermissionException =>
+          Failure(AuthorisationNotAvailableException(t))
+        case t: AuthenticationException =>
+          Failure(AuthorisationNotAvailableException(t))
+        case t =>
+          logger.debug("Unexpected exception", t)
+          Failure(new RuntimeException("Error trying to authenticate", t))
+      }.flatMap {
+        case Some(u) => Success(u)
+        case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
       }
     }
   }

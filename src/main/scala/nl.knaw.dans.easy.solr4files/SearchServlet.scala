@@ -56,7 +56,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     (params.get("text"), app.authenticate(new BasicAuthRequest(request))) match {
       case (None, _) => BadRequest("filesearch requires param 'text' (a solr dismax query), got " + params.asString)
       case (Some(q), Success(user)) => respond(app.search(createQuery(q, user)))
-      case (Some(_), Failure(InvalidCredentialsException(_, _))) => Unauthorized()
+      case (Some(_), Failure(InvalidUserPasswordException(_, _))) => Unauthorized()
       case (Some(_), Failure(AuthorisationNotAvailableException(_))) => ServiceUnavailable("Authentication service not available, try anonymous search")
       case (Some(_), Failure(t)) =>
         logger.error(t.getMessage, t)
@@ -65,7 +65,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
   }
 
   private def createQuery(query: String, user: Option[User]) = {
-    // invalid optional values are ignored
+    // invalid optional values are replaced by the default value
     val rows = params.get("limit").withFilter(_.matches("[1-9][0-9]*")).map(_.toInt).getOrElse(10)
     val start = params.get("skip").withFilter(_.matches("[0-9]+")).map(_.toInt).getOrElse(0)
     val toAnonymous = "easy_file_accessible_to:ANONYMOUS"
