@@ -25,6 +25,7 @@ import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 
+import scala.collection.JavaConverters._
 import scala.util.{ Failure, Try }
 import scala.xml.Elem
 
@@ -42,13 +43,25 @@ class ApplicationWiring(configuration: Configuration)
   private val properties: PropertiesConfiguration = configuration.properties
   override val authentication: Authentication = new LdapAuthentication {}
   override val ldapUsersEntry: String = properties.getString("ldap.users-entry")
-  override val ldapContext: Try[LdapContext] = Try {
-    val env = new java.util.Hashtable[String, String]
-    env.put(Context.SECURITY_AUTHENTICATION, "simple")
-    env.put(Context.SECURITY_PRINCIPAL, properties.getString("ldap.securityPrincipal"))
-    env.put(Context.SECURITY_CREDENTIALS, properties.getString("ldap.securityCredentials"))
-    env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
-    env.put(Context.PROVIDER_URL, properties.getString("ldap.provider.url"))
+  override val ldapContext: Try[LdapContext] = Try { // TODO fail at service startup
+
+    val provider: String = properties.getString("ldap.provider.url")
+
+    // getList should become getString with new PropertiesConfiguration(...) {setDelimiterParsingDisabled(true)...}
+    // a quick attempt however failed
+    val principal: String = properties.getList("ldap.securityPrincipal").asScala.mkString(",")
+
+    // TODO don't log passwords though it's also in plain sight in application.properties
+    val credentials: String = properties.getString("ldap.securityCredentials")
+
+    logger.info(s"principal=$principal, credentials=$credentials, provider=$provider")
+    val env = new java.util.Hashtable[String, String] {
+      put(Context.SECURITY_AUTHENTICATION, "simple")
+      put(Context.SECURITY_PRINCIPAL, principal)
+      put(Context.SECURITY_CREDENTIALS, credentials)
+      put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
+      put(Context.PROVIDER_URL, provider)
+    }
     new InitialLdapContext(env, null)
   }
 

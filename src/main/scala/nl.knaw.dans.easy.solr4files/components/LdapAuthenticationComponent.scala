@@ -15,16 +15,13 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-import java.net.URL
 import java.security.MessageDigest
-import java.util
+import java.util.Base64
 import javax.naming.directory.{ SearchControls, SearchResult }
-import javax.naming.ldap.{ InitialLdapContext, LdapContext }
-import javax.naming.{ AuthenticationException, Context, NoPermissionException, ServiceUnavailableException }
+import javax.naming.ldap.LdapContext
 
 import nl.knaw.dans.easy.solr4files.{ AuthorisationNotAvailableException, InvalidUserPasswordException }
-import java.util.Base64
-import java.nio.charset.StandardCharsets
+
 import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
 
@@ -51,7 +48,6 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
         val md = MessageDigest.getInstance(algorithm.toUpperCase)
         md.update(password.getBytes)
         val base64 = Base64.getEncoder.encodeToString(md.digest)
-        logger.info("verifying hashed password")
         s"{$algorithm}$base64"
       }
       logger.info(s"looking for user [$userName] with hashedPassword [$hashedPassword]")
@@ -60,24 +56,22 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
       val searchControls = new SearchControls() {
         setSearchScope(SearchControls.SUBTREE_SCOPE)
       }
-      ldapContext.map {
-        _.search(ldapUsersEntry, searchFilter, searchControls).asScala.toList
-          .headOption
-          .filter(_.getAttributes.get("userPassword").contains(hashedPassword))
-          .map(toUser)
-      }.recoverWith {
-        case t: ServiceUnavailableException =>
-          Failure(AuthorisationNotAvailableException(t))
-        case t: NoPermissionException =>
-          Failure(AuthorisationNotAvailableException(t))
-        case t: AuthenticationException =>
-          Failure(AuthorisationNotAvailableException(t))
-        case t =>
-          logger.debug("Unexpected exception", t)
-          Failure(new RuntimeException("Error trying to authenticate", t))
-      }.flatMap {
-        case Some(u) => Success(u)
-        case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
+
+      def findUser(entries: Iterator[SearchResult]): Try[User] = {
+        entries.toList.headOption
+          .filter(_.getAttributes.get("userPassword").contains(hashedPassword)) match {
+          case Some(sr) => Success(toUser(sr))
+          case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
+        }
+      }
+
+      (for {
+        context <- ldapContext
+        entries <- Try(context.search(ldapUsersEntry, searchFilter, searchControls).asScala)
+        user <- findUser(entries)
+      } yield user).recoverWith {
+        case t: InvalidUserPasswordException => Failure(t)
+        case t => Failure(AuthorisationNotAvailableException(t))
       }
     }
   }
