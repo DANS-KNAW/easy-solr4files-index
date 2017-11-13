@@ -36,6 +36,7 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
 
     def getUser(userName: String, password: String): Try[User] = {
 
+      logger.info(s"looking for user [$userName]")
       def toUser(searchResult: SearchResult) = {
         def getAttrs(key: String) = {
           Option(searchResult.getAttributes.get(key)).map(
@@ -50,15 +51,6 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
         )
       }
 
-      val hashedPassword = {
-        val algorithm = "SHA"
-        val md = MessageDigest.getInstance(algorithm.toUpperCase)
-        md.update(password.getBytes)
-        val base64 = Base64.getEncoder.encodeToString(md.digest)
-        s"{$algorithm}$base64"
-      }
-      logger.info(s"looking for user [$userName] with hashedPassword [$hashedPassword] plain=[$password]")
-
       def validPassword: Try[InitialLdapContext] = Try {
         val env = new util.Hashtable[String, String]() {
           put(Context.PROVIDER_URL, ldapProviderUrl)
@@ -68,17 +60,15 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
           put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
         }
         new InitialLdapContext(env, null)
+        // TODO can we get attributes from this context?
       }.recoverWith {
         case t: AuthenticationException => Failure(InvalidUserPasswordException(userName, new Exception("invalid password", t)))
         case t => Failure(t)
       }
 
-      def findUser(entries: NamingEnumeration[SearchResult]): Try[User] = {
-        logger.info(s"looking up user attributes")
-        entries.asScala.toList.headOption match {
-          case Some(sr) =>
-            logger.info(s"found user attributes")
-            Success(toUser(sr))
+      def findUser(userAttributes: NamingEnumeration[SearchResult]): Try[User] = {
+        userAttributes.asScala.toList.headOption match {
+          case Some(sr) => Success(toUser(sr))
           case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
         }
       }
@@ -89,10 +79,9 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
       }
       (for {
         context <- ldapContext
-        _ <- validPassword // TODO can we search on this one?
-        _ = logger.info("validated password")
-        entries <- Try(context.search(ldapUsersEntry, searchFilter, searchControls))
-        user <- findUser(entries)
+        _ <- validPassword
+        userAttributes <- Try(context.search(ldapUsersEntry, searchFilter, searchControls))
+        user <- findUser(userAttributes)
       } yield user).recoverWith {
         case t: InvalidUserPasswordException => Failure(t)
         case t => Failure(AuthorisationNotAvailableException(t))
