@@ -42,7 +42,7 @@ class ApplicationWiring(configuration: Configuration)
 
   private val properties: PropertiesConfiguration = configuration.properties
   override val authentication: Authentication = new LdapAuthentication {}
-  override val ldapUsersEntry: String = properties.getString("ldap.users-entry")
+  override val ldapUsersEntry: String = properties.getList("ldap.users-entry").asScala.mkString(",")
   override val ldapContext: Try[LdapContext] = Try { // TODO fail at service startup
 
     val provider: String = properties.getString("ldap.provider.url")
@@ -54,7 +54,7 @@ class ApplicationWiring(configuration: Configuration)
     // TODO don't log passwords though it's also in plain sight in application.properties
     val credentials: String = properties.getString("ldap.securityCredentials")
 
-    logger.info(s"principal=$principal, credentials=$credentials, provider=$provider")
+    logger.info(s"principal=$principal, credentials=$credentials, provider=$provider, userEntry=$ldapUsersEntry")
     val env = new java.util.Hashtable[String, String] {
       put(Context.SECURITY_AUTHENTICATION, "simple")
       put(Context.SECURITY_PRINCIPAL, principal)
