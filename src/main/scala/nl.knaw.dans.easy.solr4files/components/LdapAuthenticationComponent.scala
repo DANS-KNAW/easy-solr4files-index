@@ -16,9 +16,11 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import java.security.MessageDigest
+import java.util
 import java.util.Base64
 import javax.naming.directory.{ SearchControls, SearchResult }
-import javax.naming.ldap.LdapContext
+import javax.naming.ldap.{ InitialLdapContext, LdapContext }
+import javax.naming.{ AuthenticationException, Context, NamingEnumeration }
 
 import nl.knaw.dans.easy.solr4files.{ AuthorisationNotAvailableException, InvalidUserPasswordException }
 
@@ -28,18 +30,23 @@ import scala.util.{ Failure, Success, Try }
 trait LdapAuthenticationComponent extends AuthenticationComponent {
   val ldapContext: Try[LdapContext]
   val ldapUsersEntry: String
+  val ldapProviderUrl: String
 
   trait LdapAuthentication extends Authentication {
 
     def getUser(userName: String, password: String): Try[User] = {
 
       def toUser(searchResult: SearchResult) = {
-        val roles = searchResult.getAttributes.get("easyRoles")
+        def getAttrs(key: String) = {
+          Option(searchResult.getAttributes.get(key)).map(
+            _.getAll.asScala.toList.map(_.toString)
+          ).getOrElse(Seq.empty)
+        }
+        val roles = getAttrs("easyRoles")
         User(userName,
           isArchivist = roles.contains("ARCHIVIST"),
           isAdmin = roles.contains("ADMIN"),
-          groups = searchResult.getAttributes.get("easyGroups")
-            .getAll.asScala.toList.map(_.toString)
+          groups = getAttrs("easyGroups")
         )
       }
 
@@ -50,24 +57,41 @@ trait LdapAuthenticationComponent extends AuthenticationComponent {
         val base64 = Base64.getEncoder.encodeToString(md.digest)
         s"{$algorithm}$base64"
       }
-      logger.info(s"looking for user [$userName] with hashedPassword [$hashedPassword]")
+      logger.info(s"looking for user [$userName] with hashedPassword [$hashedPassword] plain=[$password]")
+
+      def validPassword: Try[InitialLdapContext] = Try {
+        val env = new util.Hashtable[String, String]() {
+          put(Context.PROVIDER_URL, ldapProviderUrl)
+          put(Context.SECURITY_AUTHENTICATION, "simple")
+          put(Context.SECURITY_PRINCIPAL, s"uid=$userName, $ldapUsersEntry")
+          put(Context.SECURITY_CREDENTIALS, password)
+          put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
+        }
+        new InitialLdapContext(env, null)
+      }.recoverWith {
+        case t: AuthenticationException => Failure(InvalidUserPasswordException(userName, new Exception("invalid password", t)))
+        case t => Failure(t)
+      }
+
+      def findUser(entries: NamingEnumeration[SearchResult]): Try[User] = {
+        logger.info(s"looking up user attributes")
+        entries.asScala.toList.headOption match {
+          case Some(sr) =>
+            logger.info(s"found user attributes")
+            Success(toUser(sr))
+          case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
+        }
+      }
 
       val searchFilter = s"(&(objectClass=easyUser)(uid=$userName))"
       val searchControls = new SearchControls() {
         setSearchScope(SearchControls.SUBTREE_SCOPE)
       }
-
-      def findUser(entries: Iterator[SearchResult]): Try[User] = {
-        entries.toList.headOption
-          .filter(_.getAttributes.get("userPassword").contains(hashedPassword)) match {
-          case Some(sr) => Success(toUser(sr))
-          case None => Failure(InvalidUserPasswordException(userName, new Exception("not found")))
-        }
-      }
-
       (for {
         context <- ldapContext
-        entries <- Try(context.search(ldapUsersEntry, searchFilter, searchControls).asScala)
+        _ <- validPassword // TODO can we search on this one?
+        _ = logger.info("validated password")
+        entries <- Try(context.search(ldapUsersEntry, searchFilter, searchControls))
         user <- findUser(entries)
       } yield user).recoverWith {
         case t: InvalidUserPasswordException => Failure(t)
