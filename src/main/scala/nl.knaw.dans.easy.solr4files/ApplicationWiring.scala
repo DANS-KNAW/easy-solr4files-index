@@ -42,23 +42,13 @@ class ApplicationWiring(configuration: Configuration)
 
   private val properties: PropertiesConfiguration = configuration.properties
   override val authentication: Authentication = new LdapAuthentication {}
-  override val ldapUsersEntry: String = properties.getList("ldap.users-entry").asScala.mkString(",")
+  override val ldapUsersEntry: String = properties.getString("ldap.users-entry")
   override val ldapProviderUrl: String = properties.getString("ldap.provider.url")
   override val ldapContext: Try[LdapContext] = Try { // TODO fail at service startup
-
-
-    // getList should become getString with new PropertiesConfiguration(...) {setDelimiterParsingDisabled(true)...}
-    // a quick attempt however failed
-    val principal: String = properties.getList("ldap.securityPrincipal").asScala.mkString(",")
-
-    // TODO don't log passwords though it's also in plain sight in application.properties
-    val credentials: String = properties.getString("ldap.securityCredentials")
-
-    logger.info(s"principal=$principal, credentials=$credentials, provider=$ldapProviderUrl, userEntry=$ldapUsersEntry")
     val env = new java.util.Hashtable[String, String] {
       put(Context.SECURITY_AUTHENTICATION, "simple")
-      put(Context.SECURITY_PRINCIPAL, principal)
-      put(Context.SECURITY_CREDENTIALS, credentials)
+      put(Context.SECURITY_PRINCIPAL, properties.getString("ldap.securityPrincipal"))
+      put(Context.SECURITY_CREDENTIALS, properties.getString("ldap.securityCredentials"))
       put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
       put(Context.PROVIDER_URL, ldapProviderUrl)
     }
