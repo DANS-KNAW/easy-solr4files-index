@@ -122,4 +122,6 @@ class SearchServletSpec extends TestSupportFixture
       status shouldBe SC_OK
     }
   }
+
+  // TODO test authentication, see https://github.com/DANS-KNAW/easy-update-solr4files-index/pull/9#discussion_r150809734
 }

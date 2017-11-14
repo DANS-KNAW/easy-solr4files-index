@@ -15,10 +15,11 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import nl.knaw.dans.easy.solr4files.AuthorisationTypeNotSupportedException
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Success, Try }
 
 trait AuthenticationComponent extends DebugEnhancedLogging {
 
@@ -27,12 +28,10 @@ trait AuthenticationComponent extends DebugEnhancedLogging {
   trait Authentication {
     def authenticate(authRequest: BasicAuthRequest): Try[Option[User]] = {
 
-      if (authRequest.providesAuth && authRequest.isBasicAuth) {
-        getUser(authRequest.username, authRequest.password)
-          .map(Some(_))
-      }
-      else {
-        Success(None)
+      (authRequest.providesAuth, authRequest.isBasicAuth) match {
+        case (true, true) => getUser(authRequest.username, authRequest.password).map(Some(_))
+        case (true, _) => Failure(AuthorisationTypeNotSupportedException(new Exception("Supporting only basic authentication")))
+        case (_,_) => Success(None)
       }
     }
 

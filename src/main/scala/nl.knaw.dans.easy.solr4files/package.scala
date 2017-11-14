@@ -49,6 +49,10 @@ package object solr4files extends DebugEnhancedLogging {
     extends Exception(cause.getMessage, cause) {
     logger.info(cause.getLocalizedMessage, cause)
   }
+  case class AuthorisationTypeNotSupportedException(cause: Throwable)
+    extends Exception(cause.getMessage, cause) {
+    logger.info(cause.getLocalizedMessage, cause)
+  }
 
   case class SolrStatusException(namedList: NamedList[AnyRef])
     extends Exception(s"solr returned: ${ namedList.asShallowMap().values().toArray().mkString }")
