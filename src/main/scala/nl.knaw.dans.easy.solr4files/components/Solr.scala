@@ -165,7 +165,7 @@ object Solr {
       fieldValueMap
         .keySet()
         .asScala
-        .map(key => JField(key, fieldValueMap.get(key).toString)) // TODO dates?
+        .map(key => JField(key, fieldValueMap.get(key).toString))
         .toList
     }
   }

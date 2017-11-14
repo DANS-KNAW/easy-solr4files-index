@@ -54,7 +54,7 @@ class SearchServletSpec extends TestSupportFixture
           add(new SolrDocument(new java.util.TreeMap[String, AnyRef] {
             // a sorted order makes testing easier
             put("name", "some.png")
-            put("size", "123") // TODO date?
+            put("size", "123")
           }))
         }
       }

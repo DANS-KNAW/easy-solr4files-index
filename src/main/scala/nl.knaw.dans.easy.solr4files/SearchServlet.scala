@@ -85,7 +85,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
           val own = "easy_dataset_depositor_id:" + id
           addFilterQuery(s"$toAnonymous OR $toKnown OR $own")
           addFilterQuery(s"$available OR $own")
-        // TODO add message (you can see ... because you are the owner) like in the webui?
+        // TODO add message to header (you can see ... because you are the owner) like in the webui?
       }
       setFields("easy_dataset_*", "easy_file_*") // TODO user configurable like rows and start
       setStart(start)
@@ -94,7 +94,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
       // setFacet... setMoreLikeThis... setHighlight... setDebug... etc
 
       set("defType", queryParser)
-      // TODO downgrade to debug logging
+      // TODO downgrade to debug logging?
       logger.info(s"$user requested: " + params.asString)
       logger.info("request passed on as: " + toString)
       logger.info("decoded: " + URLDecoder.decode(toString, "UTF8"))
