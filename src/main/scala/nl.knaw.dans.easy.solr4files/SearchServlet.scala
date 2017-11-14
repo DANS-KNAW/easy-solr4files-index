@@ -95,7 +95,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
 
       set("defType", queryParser)
       // TODO downgrade to debug logging
-      logger.info(s"User $user requested: " + params.asString)
+      logger.info(s"$user requested: " + params.asString)
       logger.info("request passed on as: " + toString)
       logger.info("decoded: " + URLDecoder.decode(toString, "UTF8"))
     }

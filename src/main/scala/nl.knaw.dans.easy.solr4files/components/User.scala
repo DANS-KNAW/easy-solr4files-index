@@ -15,6 +15,12 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
-case class User(id: String, groups: Seq[String] = Seq.empty, isArchivist: Boolean = false, isAdmin: Boolean = false) {
-  // TODO list of datasets with permission? Perhaps the users are stored with the datasets.
+case class User(id: String,
+                groups: Seq[String] = Seq.empty,
+                isArchivist: Boolean = false,
+                isAdmin: Boolean = false
+               ) {
+  override def toString: String = {
+    s"User: id=$id groups=$groups isArchivist=$isArchivist isAdmin=$isAdmin"
+  }
 }
