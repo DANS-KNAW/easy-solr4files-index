@@ -24,6 +24,8 @@ import org.apache.solr.common.{ SolrDocument, SolrDocumentList }
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.scalatest.ScalatraSuite
 
+import scalaj.http.Base64
+
 class SearchServletSpec extends TestSupportFixture
   with ServletFixture
   with ScalatraSuite
@@ -129,11 +131,35 @@ class SearchServletSpec extends TestSupportFixture
 
   it should "translate encoded filter" in {
     get(s"/?text=nothing&file_mime_type=application%2Fpdf") {
-      println(body)
       body should include("&fq=easy_file_mime_type:application/pdf&")
       status shouldBe SC_OK
     }
   }
 
-  // TODO test authentication, see https://github.com/DANS-KNAW/easy-update-solr4files-index/pull/9#discussion_r150809734
+  it should "reject non-basic authentication" in {
+    get(s"/?text=nothing", headers = Map("Authorization" ->
+      """Digest realm="testrealm@host.com",
+        |qop="auth,auth-int",
+        |nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
+        |opaque="5ccc069c403ebaf9f0171e9517f40e41"""".stripMargin)) {
+      body shouldBe "Only anonymous search or basic authentication supported"
+      status shouldBe SC_BAD_REQUEST
+    }
+  }
+
+  it should "report no authentication available" in {
+    get(s"/?text=nothing", headers = Map("Authorization" -> ("Basic " + Base64.encodeString("somebody:secret")))) {
+      status shouldBe SC_SERVICE_UNAVAILABLE
+      body shouldBe "Authentication service not available, try anonymous search"
+    }
+  }
+
+  it should "apply authenticated filters" ignore { // TODO mock Authentication component
+    get(s"/?text=nothing", headers = Map("Authorization" -> ("Basic " + Base64.encodeString("somebody:secret")))) {
+      val solrRequest = body.split("\n").filter(_.contains("debug"))
+      solrRequest.head should include("to:KNOWN+OR+easy_dataset_depositor_id:somebody")
+      solrRequest.head should include("TO+NOW]+OR+easy_dataset_depositor_id:somebody")
+      status shouldBe SC_OK
+    }
+  }
 }

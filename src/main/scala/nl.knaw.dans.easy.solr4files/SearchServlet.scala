@@ -58,7 +58,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
       case (Some(q), Success(user)) => respond(app.search(createQuery(q, user)))
       case (Some(_), Failure(InvalidUserPasswordException(_, _))) => Unauthorized()
       case (Some(_), Failure(AuthorisationNotAvailableException(_))) => ServiceUnavailable("Authentication service not available, try anonymous search")
-      case (Some(_), Failure(AuthorisationTypeNotSupportedException(_))) => ServiceUnavailable("Only anonymous search or basic authentication supported")
+      case (Some(_), Failure(AuthorisationTypeNotSupportedException(_))) => BadRequest("Only anonymous search or basic authentication supported")
       case (Some(_), Failure(t)) =>
         logger.error(t.getMessage, t)
         InternalServerError()
@@ -129,7 +129,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
       "dataset_relation",
       "dataset_subject",
       "dataset_coverage"
-    ).map ( key =>
+    ).map(key =>
       params
         .get(key)
         .map(value => s"easy_$key:$value") // TODO prevent injection, bad-request on invalid values?
