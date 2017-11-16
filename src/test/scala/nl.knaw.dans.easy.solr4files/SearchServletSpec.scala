@@ -34,7 +34,7 @@ class SearchServletSpec extends TestSupportFixture
     override lazy val solrClient: SolrClient = new SolrClient() {
       // can't use mock because SolrClient has a final method
 
-      override def query(params: SolrParams): QueryResponse = mockQueryResponse
+      override def query(params: SolrParams): QueryResponse = mockQueryResponse(params)
 
       override def close(): Unit = ()
 
@@ -42,12 +42,14 @@ class SearchServletSpec extends TestSupportFixture
         throw new Exception("mocked request")
     }
 
-    private def mockQueryResponse = {
-
+    private def mockQueryResponse(params: SolrParams) = {
       new QueryResponse {
         override def getResults: SolrDocumentList = new SolrDocumentList {
-          setNumFound(2)
+          setNumFound(3)
           setStart(0)
+          add(new SolrDocument(new java.util.TreeMap[String, AnyRef] {
+            put("debug", s"$params")
+          }))
           add(new SolrDocument(new java.util.HashMap[String, AnyRef] {
             put("name", "file.txt")
           }))
@@ -80,10 +82,13 @@ class SearchServletSpec extends TestSupportFixture
           |    "skip":0,
           |    "limit":10,
           |    "time_allowed":5000,
-          |    "found":2,
-          |    "returned":2
+          |    "found":3,
+          |    "returned":3
           |  },
-          |  "fileitems":[{""".stripMargin)
+          |  "fileitems":[{
+          |    "debug":"defType=dismax&q=nothing&fq=easy_file_accessible_to:ANONYMOUS+OR+easy_file_accessible_to:KNOWN&fq=easy_dataset_date_available:[*+TO+NOW]&fl=easy_dataset_*,easy_file_*&start=0&rows=10&timeAllowed=5000"
+          |  },{
+          |""".stripMargin)
       body should include(
         """{
           |    "name":"file.txt"
@@ -94,31 +99,38 @@ class SearchServletSpec extends TestSupportFixture
           |    "size":"123"
           |  }""".stripMargin)
       body should endWith(
-        """"
+        """
           |  }]
           |}""".stripMargin)
       status shouldBe SC_OK
     }
   }
 
-  it should "return a single file" ignore {
-    // TODO when fixed add arguments to readme
+  it should "translate limit to rows" in {
     get(s"/?text=nothing&limit=1") {
-      body should startWith(
-        """{
-          |  "header":{
-          |    "text":"nothing",
-          |    "skip":0,
-          |    "limit":1,
-          |    "time_allowed":5000,
-          |    "found":2,
-          |    "retuned":1
-          |  },
-          |  "fileitems":[{""".stripMargin)
-      body should endWith(
-        """"
-          |  }]
-          |}""".stripMargin)
+      body should include("&start=0&rows=1&timeAllowed=5000")
+      status shouldBe SC_OK
+    }
+  }
+
+  it should "translate skip to start" in {
+    get(s"/?text=nothing&skip=1") {
+      body should include("&start=1&rows=10&timeAllowed=5000")
+      status shouldBe SC_OK
+    }
+  }
+
+  it should "translate user specified filter" in {
+    get(s"/?text=nothing&file_mime_type=application/pdf") {
+      body should include("&fq=easy_file_mime_type:application/pdf&")
+      status shouldBe SC_OK
+    }
+  }
+
+  it should "translate encoded filter" in {
+    get(s"/?text=nothing&file_mime_type=application%2Fpdf") {
+      println(body)
+      body should include("&fq=easy_file_mime_type:application/pdf&")
       status shouldBe SC_OK
     }
   }

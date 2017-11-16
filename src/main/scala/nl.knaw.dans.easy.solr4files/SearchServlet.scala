@@ -69,36 +69,70 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     // invalid optional values are replaced by the default value
     val rows = params.get("limit").withFilter(_.matches("[1-9][0-9]*")).map(_.toInt).getOrElse(10)
     val start = params.get("skip").withFilter(_.matches("[0-9]+")).map(_.toInt).getOrElse(0)
-    val toAnonymous = "easy_file_accessible_to:ANONYMOUS"
-    val toKnown = "easy_file_accessible_to:KNOWN"
-    val available = "easy_dataset_date_available:[* TO NOW]"
     new SolrQuery() {
+      set("defType", queryParser)
       setQuery(query)
-      user match {
-        case Some(User(_, _, true, _)) => // archivist: no filters
-        case Some(User(_, _, _, true)) => // admin: no filters
-        // TODO filterQuery for groups
-        case None =>
-          addFilterQuery(s"$toAnonymous OR $toKnown")
-          addFilterQuery(available)
-        case Some(User(id, _, _, _)) =>
-          // TODO reuse cache of partial filters
-          val own = "easy_dataset_depositor_id:" + id
-          addFilterQuery(s"$toAnonymous OR $toKnown OR $own")
-          addFilterQuery(s"$available OR $own")
-        // TODO add message to header (you can see ... because you are the owner) like in the webui?
-      }
-      setFields("easy_dataset_*", "easy_file_*") // TODO user configurable like rows and start
+      accessibilityFilters(user)
+        .foreach(q => addFilterQuery(q))
+      userSpecifiedFilters()
+        .withFilter(_.isDefined)
+        .foreach(fqOpt => addFilterQuery(fqOpt.get))
+      setFields("easy_dataset_*", "easy_file_*") // TODO user configurable like rows and start?
       setStart(start)
       setRows(rows) // todo max from application.properties
       setTimeAllowed(5000) // 5 seconds TODO configurable in application.properties
       // setFacet... setMoreLikeThis... setHighlight... setDebug... etc
 
-      set("defType", queryParser)
-      // TODO downgrade to debug logging?
       logger.info(s"$user requested: " + params.asString)
       logger.info("request passed on as: " + toString)
       logger.info("decoded: " + URLDecoder.decode(toString, "UTF8"))
     }
+  }
+
+  private def accessibilityFilters(user: Option[User]): Seq[String] = {
+    val toAnonymous = "easy_file_accessible_to:ANONYMOUS"
+    val toKnown = "easy_file_accessible_to:KNOWN"
+    val available = "easy_dataset_date_available:[* TO NOW]"
+    user match {
+      case Some(User(_, _, true, _)) => // archivist: no filters
+        Seq.empty
+      case Some(User(_, _, _, true)) => // admin: no filters
+        Seq.empty
+      case None =>
+        Seq(
+          s"$toAnonymous OR $toKnown",
+          available
+        )
+      case Some(User(id, _, _, _)) =>
+        // TODO reuse cache of partial filters
+        val own = "easy_dataset_depositor_id:" + id
+        Seq(
+          s"$toAnonymous OR $toKnown OR $own",
+          s"$available OR $own"
+        )
+      // TODO add message to header (you can see ... because you are the owner) like in the webui?
+    }
+  }
+
+  private def userSpecifiedFilters(): Seq[Option[String]] = {
+
+    Seq(
+      "dataset_id",
+      "dataset_doi",
+      "dataset_depositor_id",
+      "file_mime_type",
+      "file_size",
+      "file_checksum",
+      "dataset_title",
+      "dataset_creator",
+      "dataset_audience",
+      "dataset_relation",
+      "dataset_subject",
+      "dataset_coverage"
+    ).map ( key =>
+      params
+        .get(key)
+        .map(value => s"easy_$key:$value") // TODO prevent injection, bad-request on invalid values?
+    )
   }
 }
