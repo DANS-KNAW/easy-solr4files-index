@@ -34,6 +34,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName init <bag-store>
        |  $printedName run-service
        |  $printedName delete <solr-query>
+       |  $printedName run-service
        |
        |  Some examples of [standard] solr queries for the delete command:
        |

@@ -122,16 +122,23 @@ class SearchServletSpec extends TestSupportFixture
     }
   }
 
-  it should "translate user specified filter" in {
-    get(s"/?text=nothing&file_mime_type=application/pdf") {
-      body should include("&fq=easy_file_mime_type:application/pdf&")
+  it should "translate multivalued user specified filter" in {
+    get(s"/?text=foo+bar&file_mime_type=application/pdf&file_mime_type=text/plain") {
+      body should include("""&fq=easy_file_mime_type:application\\/pdf+OR+easy_file_mime_type:text\\/plain&""")
       status shouldBe SC_OK
     }
   }
 
   it should "translate encoded filter" in {
     get(s"/?text=nothing&file_mime_type=application%2Fpdf") {
-      body should include("&fq=easy_file_mime_type:application/pdf&")
+      body should include("""&fq=easy_file_mime_type:application\\/pdf&""")
+      status shouldBe SC_OK
+    }
+  }
+
+  it should "escape user specified values to prevent potential injection: {!xmlparser..." in {
+    get(s"/?text=nothing&file_mime_type=%7B!xmlparser") {
+      body should include("""&fq=easy_file_mime_type:\\{\\!xmlparser&""")
       status shouldBe SC_OK
     }
   }
@@ -154,11 +161,10 @@ class SearchServletSpec extends TestSupportFixture
     }
   }
 
-  it should "apply authenticated filters" ignore { // TODO mock Authentication component
+  it should "apply authenticated filters" ignore { // TODO mock Authentication component alias LDAP
     get(s"/?text=nothing", headers = Map("Authorization" -> ("Basic " + Base64.encodeString("somebody:secret")))) {
-      val solrRequest = body.split("\n").filter(_.contains("debug"))
-      solrRequest.head should include("to:KNOWN+OR+easy_dataset_depositor_id:somebody")
-      solrRequest.head should include("TO+NOW]+OR+easy_dataset_depositor_id:somebody")
+      body should include("to:KNOWN+OR+easy_dataset_depositor_id:somebody")
+      body should include("TO+NOW]+OR+easy_dataset_depositor_id:somebody")
       status shouldBe SC_OK
     }
   }

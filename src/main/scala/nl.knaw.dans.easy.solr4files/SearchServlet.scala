@@ -17,11 +17,13 @@ package nl.knaw.dans.easy.solr4files
 
 import java.net.URLDecoder
 
+import nl.knaw.dans.easy.solr4files.SearchServlet.userFilters
 import nl.knaw.dans.easy.solr4files.components.User
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.http.HttpStatus._
 import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.util.ClientUtils.escapeQueryChars
 import org.scalatra._
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
@@ -116,23 +118,39 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
 
   private def userSpecifiedFilters(): Seq[Option[String]] = {
 
-    Seq(
-      "dataset_id",
-      "dataset_doi",
-      "dataset_depositor_id",
-      "file_mime_type",
-      "file_size",
-      "file_checksum",
-      "dataset_title",
-      "dataset_creator",
-      "dataset_audience",
-      "dataset_relation",
-      "dataset_subject",
-      "dataset_coverage"
-    ).map(key =>
-      params
+    userFilters.map(key =>
+      multiParams
         .get(key)
-        .map(value => s"easy_$key:$value") // TODO prevent injection, bad-request on invalid values?
+        .map(createClauseChain(key, _))
     )
   }
+
+  private def createClauseChain(key: String, values: Seq[String]) = {
+    values
+      .map(createClause(key, _))
+      .mkString(" OR ")
+  }
+
+  private def createClause(key: String, value: String) = {
+    s"easy_$key:${ escapeQueryChars(value) }"
+  }
+}
+
+object SearchServlet {
+
+  // TODO keep in sync with literals returned by DDM, Bag and FileItem classes
+  val userFilters = Seq(
+    "dataset_id",
+    "dataset_doi",
+    "dataset_depositor_id",
+    "file_mime_type",
+    "file_size",
+    "file_checksum",
+    "dataset_title",
+    "dataset_creator",
+    "dataset_audience",
+    "dataset_relation",
+    "dataset_subject",
+    "dataset_coverage"
+  )
 }
