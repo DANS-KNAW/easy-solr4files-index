@@ -41,7 +41,7 @@ class SearchServletSpec extends TestSupportFixture
       override def close(): Unit = ()
 
       override def request(solrRequest: SolrRequest[_ <: SolrResponse], s: String): NamedList[AnyRef] =
-        throw new Exception("mocked request")
+        throw new Exception("not expected call")
     }
 
     private def mockQueryResponse(params: SolrParams) = {
@@ -51,14 +51,16 @@ class SearchServletSpec extends TestSupportFixture
           setStart(0)
           add(new SolrDocument(new java.util.TreeMap[String, AnyRef] {
             put("debug", s"$params")
+            // just for these tests: allows to verify what was sent to solr
+            // so far any other part of the response is static for all tests
           }))
           add(new SolrDocument(new java.util.HashMap[String, AnyRef] {
-            put("name", "file.txt")
+            put("easy_file_name", "file.txt")
           }))
           add(new SolrDocument(new java.util.TreeMap[String, AnyRef] {
             // a sorted order makes testing easier
-            put("name", "some.png")
-            put("size", "123")
+            put("easy_file_name", "some.png")
+            put("easy_file_size", "123")
           }))
         }
       }
@@ -93,12 +95,12 @@ class SearchServletSpec extends TestSupportFixture
           |""".stripMargin)
       body should include(
         """{
-          |    "name":"file.txt"
+          |    "file_name":"file.txt"
           |  }""".stripMargin)
       body should include(
         """{
-          |    "name":"some.png",
-          |    "size":"123"
+          |    "file_name":"some.png",
+          |    "file_size":"123"
           |  }""".stripMargin)
       body should endWith(
         """

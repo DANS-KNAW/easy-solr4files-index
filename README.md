@@ -47,13 +47,13 @@ Method   | Path                             | Action
 `GET`    | `/filesearch`                    | Return indexed metadata. Not known parameters are ignored.
 
 
-Parameters for `filesearch` | description
+Parameters for `filesearch` | Description
 ----------------------------|----------------
-`text`                      | The query for the textual content. Mandatory, the `q` parameter of a [dismax] query.
+`text`                      | The query for the textual content, mandatory. Becomes the `q` parameter of a [dismax] query.
 `skip`                      | For result paging, default 0.
 `limit`                     | For result paging, default 10.
-`dataset_id`, `dataset_doi` | Restrict to one or some datasets, optional. Repeating just one type of the identifiers return items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
-`dataset_depositor_id`      | Restrict to the specific dataset field, optional. Repeating a field return items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
+`dataset_id`, `dataset_doi` | Restrict to one or some datasets, optional. Repeating just one type of the identifiers returns items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
+`dataset_depositor_id`      | Restrict to the specific dataset field, optional. Repeating a field returns items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
 `file_mime_type`            | ,,
 `file_size`                 | ,,
 `file_checksum`             | ,,
