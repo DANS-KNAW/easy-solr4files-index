@@ -77,8 +77,7 @@ trait Solr extends DebugEnhancedLogging {
 
 
   private def toJson(solrDocumentList: SolrDocumentList, query: SolrQuery): String = {
-    val numFound = solrDocumentList.getNumFound
-    val fileItems = (0L until numFound).map { i =>
+    val fileItems = (0L until solrDocumentList.size()).map { i =>
       solrDocumentList.get(i.toInt).getFieldValueMap.toJObject
     }
     val result =
@@ -87,7 +86,7 @@ trait Solr extends DebugEnhancedLogging {
           ("skip" -> query.getStart.toInt) ~
           ("limit" -> query.getRows.toInt) ~
           ("time_allowed" -> query.getTimeAllowed.toInt) ~
-          ("found" -> numFound) ~
+          ("found" -> solrDocumentList.getNumFound) ~
           ("returned" -> fileItems.size)
         )) ~
         ("fileitems" -> fileItems)
