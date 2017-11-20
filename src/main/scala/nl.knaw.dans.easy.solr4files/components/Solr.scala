@@ -98,7 +98,7 @@ trait Solr extends DebugEnhancedLogging {
     (for {
       response <- Try(solrClient.query(query))
       _ <- checkResponseStatus(response)
-    } yield toJson(response.getResults, query)
+    } yield toJson(response.getResults, query) // .getFacet.Xxx, .getGroupXxx .getSortedXxx .getMoreLikeXxx etc.
       ).recoverWith {
       case t: HttpSolrClient.RemoteSolrException if isParseException(t) =>
         Failure(SolrBadRequestException(t.getMessage, t))
@@ -165,7 +165,7 @@ object Solr {
       fieldValueMap
         .keySet()
         .asScala
-        .map(key => JField(key.replace("easy_",""), fieldValueMap.get(key).toString))
+        .map(key => JField(key.replace("easy_", ""), fieldValueMap.get(key).toString))
         .toList
     }
   }

@@ -23,7 +23,7 @@ SYNOPSIS
     easy-update-solr4files-index delete <solr-query>
     easy-update-solr4files-index run-service
     
-    Some examples of [standard] solr queries for the delete command:
+    Some examples of standard solr queries for the delete command:
     
       everything:            '*:*'
       all bags of one store: 'easy_dataset_store_id:pdbs'
@@ -44,16 +44,16 @@ Method   | Path                             | Action
 `POST`   | `/fileindex/update/:store/:uuid` | Index all files of one bag. Eventual obsolete file items are cleared.
 `DELETE` | `/fileindex/:store[/:uuid]`      | Remove all items from the index or the items of a store or bag.
 `DELETE` | `/fileindex/`                    | Requires parameter q, a mandatory [standard] solr query that specifies the items to remove from the index.
-`GET`    | `/filesearch`                    | Return indexed metadata. Not known parameters are ignored.
+`GET`    | `/filesearch`                    | Return indexed metadata. Query parameters are optional, not known parameters are ignored.
 
 
 Parameters for `filesearch` | Description
 ----------------------------|----------------
-`text`                      | The query for the textual content, mandatory. Becomes the `q` parameter of a [dismax] query.
+`text`                      | The query for the textual content. Becomes the `q` parameter of a [dismax] query. If not specified all accessible items are returned unless a restriction is specified.
 `skip`                      | For result paging, default 0.
 `limit`                     | For result paging, default 10.
-`dataset_id`, `dataset_doi` | Restrict to one or some datasets, optional. Repeating just one type of the identifiers returns items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
-`dataset_depositor_id`      | Restrict to the specific dataset field, optional. Repeating a field returns items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
+`dataset_id`, `dataset_doi` | Restrict to one or some datasets. Repeating just one type of the identifiers returns items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
+`dataset_depositor_id`      | Restrict to the specific dataset field. Repeating a field returns items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
 `file_mime_type`            | ,,
 `file_size`                 | ,,
 `file_checksum`             | ,,

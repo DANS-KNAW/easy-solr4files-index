@@ -70,19 +70,20 @@ class SearchServletSpec extends TestSupportFixture
   private val app = new EasyUpdateSolr4filesIndexApp(new StubbedWiring)
   addServlet(new SearchServlet(app), "/*")
 
-  "get /" should "complain about missing argument" in {
-    get("/?q=something") {
-      body shouldBe "filesearch requires param 'text' (a solr dismax query), got params [q -> something]"
-      status shouldBe SC_BAD_REQUEST
+  "get /" should "translate to searching with *:* and the default parser" in {
+    get("/?q=foo+bar") { // q is ignored as it is an unknown argument
+      body should include(""""debug":"q=*:*&fq=easy_file_accessible_to:ANONYMOUS+OR+easy_file_accessible_to:KNOWN&fq=easy_dataset_date_available:[*+TO+NOW]&fl=easy_dataset_*,easy_file_*&start=0&rows=10&timeAllowed=5000"""")
+      status shouldBe SC_OK
     }
   }
 
   it should "return json" in {
-    get(s"/?text=nothing") {
+    get(s"/?text=something") {
+      header.get("Content-Type") shouldBe Some("application/json;charset=UTF-8")
       body should startWith(
         """{
           |  "header":{
-          |    "text":"nothing",
+          |    "text":"something",
           |    "skip":0,
           |    "limit":10,
           |    "time_allowed":5000,
@@ -90,7 +91,7 @@ class SearchServletSpec extends TestSupportFixture
           |    "returned":3
           |  },
           |  "fileitems":[{
-          |    "debug":"defType=dismax&q=nothing&fq=easy_file_accessible_to:ANONYMOUS+OR+easy_file_accessible_to:KNOWN&fq=easy_dataset_date_available:[*+TO+NOW]&fl=easy_dataset_*,easy_file_*&start=0&rows=10&timeAllowed=5000"
+          |    "debug":"q=something&defType=dismax&fq=easy_file_accessible_to:ANONYMOUS+OR+easy_file_accessible_to:KNOWN&fq=easy_dataset_date_available:[*+TO+NOW]&fl=easy_dataset_*,easy_file_*&start=0&rows=10&timeAllowed=5000"
           |  },{
           |""".stripMargin)
       body should include(
@@ -111,14 +112,14 @@ class SearchServletSpec extends TestSupportFixture
   }
 
   it should "translate limit to rows" in {
-    get(s"/?text=nothing&limit=1") {
+    get(s"/?text=foo+bar&limit=1") {
       body should include("&start=0&rows=1&timeAllowed=5000")
       status shouldBe SC_OK
     }
   }
 
   it should "translate skip to start" in {
-    get(s"/?text=nothing&skip=1") {
+    get(s"/?text=foo+bar&skip=1") {
       body should include("&start=1&rows=10&timeAllowed=5000")
       status shouldBe SC_OK
     }
@@ -132,7 +133,7 @@ class SearchServletSpec extends TestSupportFixture
   }
 
   it should "translate encoded filter" in {
-    get(s"/?text=nothing&file_mime_type=application%2Fpdf") {
+    get(s"/?text=foo+bar&file_mime_type=application%2Fpdf") {
       body should include("""&fq=easy_file_mime_type:application\\/pdf&""")
       status shouldBe SC_OK
     }
