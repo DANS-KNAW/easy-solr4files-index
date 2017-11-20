@@ -82,7 +82,7 @@ class SearchServletSpec extends TestSupportFixture
       header.get("Content-Type") shouldBe Some("application/json;charset=UTF-8")
       body should startWith(
         """{
-          |  "header":{
+          |  "summary":{
           |    "text":"something",
           |    "skip":0,
           |    "limit":10,

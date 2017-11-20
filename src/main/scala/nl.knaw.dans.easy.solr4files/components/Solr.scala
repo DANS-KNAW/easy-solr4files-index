@@ -81,7 +81,7 @@ trait Solr extends DebugEnhancedLogging {
       solrDocumentList.get(i.toInt).getFieldValueMap.toJObject
     }
     val result =
-      ("header" -> (
+      ("summary" -> (
         ("text" -> query.getQuery) ~
           ("skip" -> query.getStart.toInt) ~
           ("limit" -> query.getRows.toInt) ~

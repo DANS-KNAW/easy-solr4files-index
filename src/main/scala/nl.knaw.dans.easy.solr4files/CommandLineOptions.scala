@@ -36,7 +36,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName delete <solr-query>
        |  $printedName run-service
        |
-       |  Some examples of [standard] solr queries for the delete command:
+       |  Some examples of standard solr queries for the delete command:
        |
        |    everything:            '*:*'
        |    all bags of one store: 'easy_dataset_store_id:pdbs'
