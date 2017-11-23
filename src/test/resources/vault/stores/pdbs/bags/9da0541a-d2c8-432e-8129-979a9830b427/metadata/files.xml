@@ -4,7 +4,7 @@
         <dcterms:type>http://schema.org/VideoObject</dcterms:type>
         <dcterms:format>video/mpeg</dcterms:format>
         <dcterms:title>hubble.mpg</dcterms:title>
-        <dcterms:accessRights>RESTRICTED_GROUP</dcterms:accessRights>
+        <accessibleToRights>RESTRICTED_GROUP</accessibleToRights>
     </file>
     <file filepath="data/reisverslag/centaur-nederlands.srt">
         <dcterms:accessRights>RESTRICTED_GROUP</dcterms:accessRights>
@@ -14,12 +14,12 @@
         <dcterms:type>http://schema.org/VideoObject</dcterms:type>
         <dcterms:format>video/mpeg</dcterms:format>
         <dcterms:title>video about the centaur meteorite</dcterms:title>
-        <dcterms:accessRights>RESTRICTED_GROUP</dcterms:accessRights>
+        <accessibleToRights>RESTRICTED_GROUP</accessibleToRights>
         <dcterms:relation xml:lang="en">data/reisverslag/centaur.srt</dcterms:relation>
         <dcterms:relation xml:lang="nl">data/reisverslag/centaur-nederlands.srt</dcterms:relation>
     </file>
     <file filepath="data/reisverslag/centaur.srt">
-        <dcterms:accessRights>RESTRICTED_GROUP</dcterms:accessRights>
+        <accessibleToRights>RESTRICTED_GROUP</accessibleToRights>
         <dcterms:format>text/plain</dcterms:format>
     </file>
     <file filepath="data/reisverslag/deel01.docx">
