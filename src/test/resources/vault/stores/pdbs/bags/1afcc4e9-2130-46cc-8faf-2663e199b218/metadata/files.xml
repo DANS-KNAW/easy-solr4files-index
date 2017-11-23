@@ -6,7 +6,7 @@
     <file filepath="data/documents/date without Z: once it was a problem.jpg">
         <dcterms:format>image/jpeg</dcterms:format>
     </file>
-    <file filepath="pakbon.xml">
+    <file filepath="data/pakbon.xml">
         <dcterms:format>text/xml</dcterms:format>
     </file>
 </files>
