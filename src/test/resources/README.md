@@ -13,7 +13,7 @@ Make sure to remove eventual files ignored by `.gitignore` such as `.DS_Store`
 
 ```
 sudo su
-cd /vagrant/src/test/resources/vault/stores/pdbs/bags/
+cd ~/test-data/pdbs/bags
 
 # bag UUID: 40594b6d-8378-4260-b96b-13b57beadf7c space travel 
 cp -r 9da0541a-d2c8-432e-8129-979a9830b427 /data/bag-stores/stores/pdbs/ab/123456789012345678901234567890
