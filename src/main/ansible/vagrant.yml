@@ -57,7 +57,7 @@
 
   - name: Create link to test data
     file:
-      src: /vagrant/src/test/resources/vault/stores/pdbs
+      src: /vagrant/src/test/resources/vault/stores/pdbs/bags
       dest: /home/vagrant/test-data
       state: link
 
