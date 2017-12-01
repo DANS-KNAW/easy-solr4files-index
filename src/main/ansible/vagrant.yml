@@ -55,7 +55,6 @@
       mode: "0775"
     with_items: "{{ bag_stores }}"
 
-
   - name: Create link to test data
     file:
       src: /vagrant/src/test/resources/vault/stores/pdbs
