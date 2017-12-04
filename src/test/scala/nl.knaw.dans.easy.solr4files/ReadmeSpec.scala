@@ -23,7 +23,6 @@ import org.scalatest._
 import scala.io.Source
 
 class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
-  System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
 
   private val configuration = Configuration(Paths.get("src/main/assembly/dist"))
   private val clo = new CommandLineOptions(Array[String](), configuration) {
