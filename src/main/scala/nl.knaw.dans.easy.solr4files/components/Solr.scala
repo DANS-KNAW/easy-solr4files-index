@@ -45,6 +45,7 @@ trait Solr extends DebugEnhancedLogging {
   def createDoc(item: FileItem): Try[FileFeedback] = {
     item.bag.fileUrl(item.path).flatMap { fileUrl =>
       val solrDocId = s"${ item.bag.bagId }/${ item.path }"
+      // TODO only normalise whitespace for item.ddm.solrLiterals and then only trim all values
       val solrFields = (item.bag.solrLiterals ++ item.ddm.solrLiterals ++ item.solrLiterals :+ "file_size" -> item.size.toString)
         .map {
           case (k, v) if k == "file_path" => (k, v.trim) // do not normalise whitespace in filepath
