@@ -48,8 +48,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
   get("/") {
     contentType = "application/json"
 
-    // TODO user configurable like rows and start in createQuery?
-    val fetchFields = Seq("easy_dataset_*", "easy_file_*")
+    val fetchFields = Seq("easy_dataset_*", "easy_file_*") // TODO params.get("???") but what is possible allowed?
     val fetchExceptions = Seq("easy_dataset_depositor_id")
 
     // no command line equivalent, use http://localhost:8983/solr/#/fileitems/query
