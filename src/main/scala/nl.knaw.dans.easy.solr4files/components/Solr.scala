@@ -168,12 +168,12 @@ trait Solr extends DebugEnhancedLogging {
 
   private def fileItemsAsJson(solrDocumentList: SolrDocumentList, skip: Seq[String]) = {
     (0L until solrDocumentList.size()).map { i =>
-      val fieldValueMap = solrDocumentList.get(i.toInt).getFieldValueMap
-      fieldValueMap
-        .keySet()
+      solrDocumentList
+        .get(i.toInt)
+        .getFieldValueMap
         .asScala
-        .filter(!skip.contains(_))
-        .map(key => JField(key.replace("easy_", ""), fieldValueMap.get(key).toString))
+        .withFilter { case (k, _) => !skip.contains(k) }
+        .map { case (key, value) => JField(key.replace("easy_", ""), value.toString) }
         .toList
     }
   }
