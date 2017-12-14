@@ -169,9 +169,7 @@ trait Solr extends DebugEnhancedLogging {
   private def fileItemsAsJson(solrDocumentList: SolrDocumentList, skip: Seq[String]) = {
     (0L until solrDocumentList.size()).map { i =>
       val fieldValueMap = solrDocumentList.get(i.toInt).getFieldValueMap
-      fieldValueMap
-        .keySet()
-        .asScala
+      fieldValueMap.keySet().asScala // asScala on the map throws NotImplementedException
         .filter(!skip.contains(_))
         .map(key => JField(key.replace("easy_", ""), fieldValueMap.get(key).toString))
         .toList
