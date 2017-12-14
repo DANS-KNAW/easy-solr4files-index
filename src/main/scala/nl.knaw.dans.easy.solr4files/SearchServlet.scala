@@ -37,7 +37,7 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     result.map(Ok(_))
       .doIfFailure { case e => logger.error(e.getMessage, e) }
       .getOrRecover {
-        case SolrBadRequestException(message, _) => BadRequest(message) // delete or search only
+        case SolrBadRequestException(message, _) => BadRequest(message)
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_NOT_FOUND => NotFound(message)
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_SERVICE_UNAVAILABLE => ServiceUnavailable(message)
         case HttpStatusException(message, r: HttpResponse[String]) if r.code == SC_REQUEST_TIMEOUT => RequestTimeout(message)
@@ -48,10 +48,14 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
   get("/") {
     contentType = "application/json"
 
+    // TODO user configurable like rows and start in createQuery?
+    val fetchFields = Seq("easy_dataset_*", "easy_file_*")
+    val fetchExceptions = Seq("easy_dataset_depositor_id")
+
     // no command line equivalent, use http://localhost:8983/solr/#/fileitems/query
     // or for example:           curl 'http://localhost:8983/solr/fileitems/query?q=*'
     app.authenticate(new BasicAuthRequest(request)) match {
-      case (Success(user)) => respond(app.search(createQuery(user)))
+      case (Success(user)) => respond(app.search(createQuery(user, fetchFields), fetchExceptions))
       case (Failure(InvalidUserPasswordException(_, _))) => Unauthorized()
       case (Failure(AuthorisationNotAvailableException(_))) => ServiceUnavailable("Authentication service not available, try anonymous search")
       case (Failure(AuthorisationTypeNotSupportedException(_))) => BadRequest("Only anonymous search or basic authentication supported")
@@ -61,7 +65,10 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
     }
   }
 
-  private def createQuery(user: Option[User]) = {
+  /**
+   * @return the URI params of the request translated into a Solr search request
+   */
+  private def createQuery(user: Option[User], fetch: Seq[String]) = {
     // invalid optional values are replaced by the default value
     val rows = params.get("limit").withFilter(_.matches("[1-9][0-9]*")).map(_.toInt).getOrElse(10)
     val start = params.get("skip").withFilter(_.matches("[0-9]+")).map(_.toInt).getOrElse(0)
@@ -78,10 +85,10 @@ class SearchServlet(app: EasyUpdateSolr4filesIndexApp) extends ScalatraServlet w
       }
       accessibilityFilters(user)
         .foreach(q => addFilterQuery(q))
+      fetch.foreach(addField)
       userSpecifiedFilters()
         .withFilter(_.isDefined)
         .foreach(fqOpt => addFilterQuery(fqOpt.get))
-      setFields("easy_dataset_*", "easy_file_*") // TODO user configurable like rows and start?
       setStart(start)
       setRows(rows) // todo max from application.properties
       setTimeAllowed(5000) // 5 seconds TODO configurable in application.properties
