@@ -21,7 +21,7 @@ import javax.naming.directory.{ Attribute, SearchControls, SearchResult }
 import javax.naming.ldap.InitialLdapContext
 import javax.naming.{ AuthenticationException, Context }
 
-import nl.knaw.dans.easy.solr4files.{ AuthorisationTypeNotSupportedException, InvalidUserPasswordException }
+import nl.knaw.dans.easy.solr4files.{ AuthorisationNotAvailableException, AuthorisationTypeNotSupportedException, InvalidUserPasswordException }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 import resource.managed
@@ -101,6 +101,9 @@ trait AuthenticationComponent extends DebugEnhancedLogging {
         isAdmin = roles.contains("ADMIN"),
         groups = userAttributes.getOrElse("easyGroups", Seq.empty)
       )
+    }.recoverWith {
+      case t: InvalidUserPasswordException => Failure(t)
+      case t => Failure(AuthorisationNotAvailableException(t))
     }
   }
 }
