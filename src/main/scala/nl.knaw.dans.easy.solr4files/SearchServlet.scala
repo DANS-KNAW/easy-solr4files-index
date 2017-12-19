@@ -46,19 +46,22 @@ class SearchServlet(app: EasySolr4filesIndexApp) extends ScalatraServlet with De
   }
 
   get("/") {
+    logger.info(s"file search request: $params")
     contentType = "application/json"
 
     // no command line equivalent, use http://localhost:8983/solr/#/fileitems/query
     // or for example:           curl 'http://localhost:8983/solr/fileitems/query?q=*'
-    app.authenticate(new BasicAuthRequest(request)) match {
+    val result = app.authenticate(new BasicAuthRequest(request)) match {
       case (Success(user)) => respond(app.search(createQuery(user)))
       case (Failure(InvalidUserPasswordException(_, _))) => Unauthorized()
       case (Failure(AuthorisationNotAvailableException(_))) => ServiceUnavailable("Authentication service not available, try anonymous search")
       case (Failure(AuthorisationTypeNotSupportedException(_))) => BadRequest("Only anonymous search or basic authentication supported")
       case (Failure(t)) =>
-        logger.error(t.getMessage, t)
-        InternalServerError()
+        logger.error(s"not expected exception", t)
+        InternalServerError("not expected exception")
     }
+    logger.info(s"file search returned ${response.status.line} for $params")
+    result
   }
 
   private def createQuery(user: Option[User]) = {
