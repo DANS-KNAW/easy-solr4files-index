@@ -69,7 +69,7 @@ trait AuthenticationComponent extends DebugEnhancedLogging {
           .tried
       }.recoverWith {
         case t: AuthenticationException => Failure(InvalidUserPasswordException(userName, new Exception("invalid password", t)))
-        case t => Failure(t)
+        case t => Failure(AuthorisationNotAvailableException(t))
       }
 
       def getFirst(list: List[SearchResult]): Try[SearchResult] = {
@@ -96,14 +96,7 @@ trait AuthenticationComponent extends DebugEnhancedLogging {
         userAttributes = searchResult.getAttributes.getAll.asScala.map(toTuples).toMap
         _ <- userIsActive(userAttributes)
         roles = userAttributes.getOrElse("easyRoles", Seq.empty)
-      } yield User(userName,
-        isArchivist = roles.contains("ARCHIVIST"),
-        isAdmin = roles.contains("ADMIN"),
-        groups = userAttributes.getOrElse("easyGroups", Seq.empty)
-      )
-    }.recoverWith {
-      case t: InvalidUserPasswordException => Failure(t)
-      case t => Failure(AuthorisationNotAvailableException(t))
+      } yield User(userName, userAttributes.getOrElse("easyGroups", Seq.empty))
     }
   }
 }

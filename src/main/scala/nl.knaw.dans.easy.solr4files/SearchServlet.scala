@@ -60,7 +60,7 @@ class SearchServlet(app: EasySolr4filesIndexApp) extends ScalatraServlet with De
         logger.error(s"not expected exception", t)
         InternalServerError("not expected exception")
     }
-    logger.info(s"file search returned ${response.status.line} for $params")
+    logger.info(s"file search returned ${ response.status.line } for $params")
     result
   }
 
@@ -101,16 +101,8 @@ class SearchServlet(app: EasySolr4filesIndexApp) extends ScalatraServlet with De
     val toKnown = "easy_file_accessible_to:KNOWN"
     val available = "easy_dataset_date_available:[* TO NOW]"
     user match {
-      case Some(User(_, _, true, _)) => // archivist: no filters
-        Seq.empty
-      case Some(User(_, _, _, true)) => // admin: no filters
-        Seq.empty
-      case None =>
-        Seq(
-          s"$toAnonymous",
-          available
-        )
-      case Some(User(id, _, _, _)) =>
+      case None => Seq(s"$toAnonymous", available)
+      case Some(User(id, _)) =>
         // TODO reuse cache of partial filters
         val own = "easy_dataset_depositor_id:" + id
         Seq(
