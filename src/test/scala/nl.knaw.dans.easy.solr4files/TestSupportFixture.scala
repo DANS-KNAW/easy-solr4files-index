@@ -43,6 +43,10 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       override val ldapUsersEntry: String = "ou=users,ou=easy,dc=dans,dc=knaw,dc=nl"
       override val ldapProviderUrl: String = "ldap://hostThatDoesNotExist:389"
     }
+    override val authorisation: Authorisation = new Authorisation {
+      override val baseUri: URI = new URI("http://hostThatDoesNotExist:20170/")
+    }
+    override val http: HttpWorker = new HttpWorker {}
   }
 
   val uuidCentaur: UUID = UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427")

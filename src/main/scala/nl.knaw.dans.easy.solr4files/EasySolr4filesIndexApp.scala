@@ -143,11 +143,15 @@ object EasySolr4filesIndexApp {
       override val ldapUsersEntry: String = properties.getString("ldap.users-entry")
       override val ldapProviderUrl: String = properties.getString("ldap.provider.url")
     }
+    override val authorisation: Authorisation = new Authorisation {
+      override val baseUri: URI = new URI(properties.getString("auth-info.url"))
+    }
+    override val http: HttpWorker = new HttpWorker {}
 
     // don't need resolve for solr, URL gives more early errors TODO perhaps not yet at service startup once implemented
     private val solrUrl: URL = new URL(properties.getString("solr.url", "http://localhost"))
     override val solrClient: SolrClient = new HttpSolrClient.Builder(solrUrl.toString).build()
-    override val vaultBaseUri: URI = new URI(properties.getString("vault.url", "http://localhost"))
+    override val vaultBaseUri: URI = new URI(properties.getString("vault.url", "http://localhost"))//TODO BagStoreComponent using HttpWorker as in easy-download
     override val maxFileSizeToExtractContentFrom: Double = properties.getString("max-fileSize-toExtract-content-from", (64 * 1024 * 1024).toString).toDouble
   }
 }

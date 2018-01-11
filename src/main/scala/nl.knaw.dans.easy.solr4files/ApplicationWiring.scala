@@ -25,5 +25,7 @@ trait ApplicationWiring
   extends DebugEnhancedLogging
     with Vault
     with Solr
+    with AuthorisationComponent
+    with HttpWorkerComponent
     with AuthenticationComponent {
 }
