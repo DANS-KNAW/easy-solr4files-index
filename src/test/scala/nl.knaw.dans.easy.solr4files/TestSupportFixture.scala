@@ -21,6 +21,7 @@ import java.nio.file.{ Files, Path, Paths }
 import java.util.UUID
 
 import nl.knaw.dans.easy.solr4files.components.Vault
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 
@@ -36,6 +37,10 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
   }
 
   abstract class TestApp() extends EasySolr4filesIndexApp {
+
+    override lazy val properties: PropertiesConfiguration = new PropertiesConfiguration() {
+      addProperty("auth-info.url", "http://hostThatDoesNotExist:20170/")
+    }
 
     override val maxFileSizeToExtractContentFrom: Double = 64 * 1024 * 1024
     override val vaultBaseUri: URI = new URI(s"file:///${ testDir.resolve("vault").toAbsolutePath }/")
