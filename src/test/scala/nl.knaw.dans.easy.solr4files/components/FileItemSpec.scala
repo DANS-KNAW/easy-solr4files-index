@@ -16,6 +16,8 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import nl.knaw.dans.easy.solr4files.TestSupportFixture
+import nl.knaw.dans.easy.solr4files.components.RightsFor.{ ANONYMOUS, KNOWN, NONE, RESTRICTED_GROUP }
+import org.joda.time.DateTime
 
 class FileItemSpec extends TestSupportFixture {
 
@@ -23,7 +25,8 @@ class FileItemSpec extends TestSupportFixture {
 
   "solrLiteral" should "return proper values" in {
     initVault()
-    val xml = <file filepath="data/reisverslag/centaur.mpg">
+    val path = "data/reisverslag/centaur.mpg"
+    val xml = <file filepath={path}>
       <dcterms:type>http://schema.org/VideoObject</dcterms:type>
       <dcterms:format>video/mpeg</dcterms:format>
       <dcterms:title>video about the centaur meteorite</dcterms:title>
@@ -32,9 +35,10 @@ class FileItemSpec extends TestSupportFixture {
       <dcterms:relation xml:lang="nl">data/reisverslag/centaur-nederlands.srt</dcterms:relation>
     </file>
 
-    val fi = FileItem(centaurBag, ddm("OPEN_ACCESS"), xml)
+    val authInfoItem = AuthInfoItem(s"someUUID/$path", "someone", DateTime.now, RESTRICTED_GROUP, RESTRICTED_GROUP)
+    val fi = FileItem(centaurBag, ddm("OPEN_ACCESS"), xml, authInfoItem)
     fi.mimeType shouldBe "video/mpeg"
-    fi.path shouldBe "data/reisverslag/centaur.mpg"
+    fi.path shouldBe path
 
     val solrLiterals = fi.solrLiterals.toMap
     solrLiterals("file_path") shouldBe fi.path
@@ -46,19 +50,22 @@ class FileItemSpec extends TestSupportFixture {
   }
 
   it should "use the dataset rights as default" in {
-    val solrLiterals = FileItem(centaurBag, ddm("OPEN_ACCESS"), <file filepath="p"/>)
+    val authInfoItem = AuthInfoItem("", "", DateTime.now, ANONYMOUS, ANONYMOUS)
+    val solrLiterals = FileItem(centaurBag, ddm("OPEN_ACCESS"), <file filepath="p"/>, authInfoItem)
       .solrLiterals.toMap
     solrLiterals("file_accessible_to") shouldBe "ANONYMOUS"
   }
 
   it should "also use the dataset rights as default" in {
-    val item = FileItem(centaurBag, ddm("OPEN_ACCESS_FOR_REGISTERED_USERS"), <file filepath="p"/>)
+    val authInfoItem = AuthInfoItem("", "", DateTime.now, KNOWN, KNOWN)
+    val item = FileItem(centaurBag, ddm("OPEN_ACCESS_FOR_REGISTERED_USERS"), <file filepath="p"/>, authInfoItem)
     val solrLiterals = item.solrLiterals.toMap
     solrLiterals("file_accessible_to") shouldBe "KNOWN"
   }
 
   it should "not have read the lazy files in case of accessible to none" ignore { // TODO
-    val item = FileItem(centaurBag, ddm("NO_ACCESS"), <file filepath="p"/>)
+    val authInfoItem = AuthInfoItem("", "", DateTime.now, NONE, NONE)
+    val item = FileItem(centaurBag, ddm("NO_ACCESS"), <file filepath="p"/>, authInfoItem)
 
     // The bag.sha's and ddm.vocabularies are private
     // so we need side effects, not something like https://stackoverflow.com/questions/1651927/how-to-unit-test-for-laziness

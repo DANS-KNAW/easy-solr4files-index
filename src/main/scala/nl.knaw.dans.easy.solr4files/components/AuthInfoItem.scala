@@ -33,7 +33,12 @@ case class AuthInfoItem(itemId: String,
                         dateAvailable: DateTime,
                         accessibleTo: RightsFor.Value,
                         visibleTo: RightsFor.Value
-                       )
+                       ) {
+  val path: String = itemId.replaceAll("^[^/]+/","")
+  val isAccessible: Boolean = {
+    accessibleTo != RightsFor.NONE
+  }
+}
 
 object AuthInfoItem {
   private implicit val jsonFormats: Formats = new DefaultFormats {

@@ -69,10 +69,30 @@ class AppSpec extends TestSupportFixture {
     }
   }
 
+  private def jsonAuthItem(uuid: UUID, path: String) = Success(
+    s"""{
+       |  "itemId":"$uuid/$path",
+       |  "owner":"someone",
+       |  "dateAvailable":"1992-07-30",
+       |  "accessibleTo":"ANONYMOUS",
+       |  "visibleTo":"ANONYMOUS"
+       |}""".stripMargin)
+
   "update" should "call the stubbed solrClient.request" in {
     initVault()
     assume(canConnectToEasySchemas)
-    val result = new StubbedSolrApp().update(storeName, uuidCentaur)
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/path/to/a/random/video/hubble.mpg")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur.mpg")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur.srt")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur-nederlands.srt")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel01.docx")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel01.txt")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel02.txt")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel03.txt")) once()
+    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/ruimtereis01_verklaring.txt")) once()
+
+    val result = app.update(storeName, uuidCentaur)
     inside(result) { case Success(feedback) =>
       feedback.toString shouldBe s"Bag ${ uuidCentaur }: 7 times FileSubmittedWithContent, 2 times FileSubmittedWithOnlyMetadata"
     }
@@ -81,7 +101,10 @@ class AppSpec extends TestSupportFixture {
   it should "not stumble on difficult file names" in {
     initVault()
     assume(canConnectToEasySchemas)
-    val result = new StubbedSolrApp().update(storeName, uuidAnonymized)
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(jsonAuthItem(uuidAnonymized, "YYY")) anyNumberOfTimes()
+
+    val result = app.update(storeName, uuidAnonymized)
     inside(result) { case Success(feedback) =>
       feedback.toString shouldBe s"Bag ${ uuidAnonymized }: 3 times FileSubmittedWithContent"
     }

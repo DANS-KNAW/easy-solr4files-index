@@ -15,16 +15,17 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import java.nio.file.Paths
 import java.util.UUID
 
-import nl.knaw.dans.easy.solr4files.components.{ Bag, DDM, FileItem, User }
+import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
 import scala.util.{ Failure, Success, Try }
-import scala.xml.Elem
+import scala.xml.{ Elem, Node }
 
 trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
   with DebugEnhancedLogging {
@@ -109,13 +110,38 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
    */
   def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[BagSubmitted] = {
     (filesXML \ "file")
-      .map(FileItem(bag, ddm, _))
-      .filter(_.shouldIndex)
+      .map(getFileItem(bag, ddm, _))
       .toStream
-      .map(f => createDoc(f))
+      .withFilter(_.isDefined)
+      .map{
+        case Some(Success(f)) => createDoc(f)
+        case Some(Failure(e)) => Failure(e)
+      }
       .takeUntilFailure
-      .doIfFailure { case MixedResultsException(results: Seq[_], _) => results.foreach(fb => logger.info(fb.toString)) }
+      .doIfFailure { case MixedResultsException(results: Seq[FileFeedback], _) =>
+        results.foreach(fb => logger.info(fb.toString))
+      }
       .map(results => BagSubmitted(bag.bagId.toString, results))
+  }
+
+  private def getFileItem(bag: Bag,
+                          ddm: DDM,
+                          fileNode: Node
+                         ): Option[Try[FileItem]] = {
+    getAccessibleAuthInfo(bag.bagId, fileNode) match {
+      case None => None
+      case Some(Failure(t)) => Some(Failure(t))
+      case Some(Success(authInfoItem)) if !authInfoItem.isAccessible => None
+      case Some(Success(authInfoItem))  => Some(Success(FileItem(bag, ddm, fileNode, authInfoItem)))
+    }
+  }
+
+  private def getAccessibleAuthInfo(bagID: UUID, fileNode: Node): Option[Try[AuthInfoItem]] = {
+    fileNode
+      .attribute("filepath")
+      .map(attribute =>
+        authorisation.getAuthInfoItem(bagID, Paths.get(attribute.text))
+      )
   }
 
   def authenticate(authRequest: BasicAuthRequest): Try[Option[User]] = authentication.authenticate(authRequest)
