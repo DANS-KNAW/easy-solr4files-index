@@ -21,13 +21,11 @@ import org.joda.time.DateTime
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers }
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
+import nl.knaw.dans.easy.solr4files._
 
 import scala.util.{ Failure, Try }
 
-/**
- * @param itemId uuid of the bag + path of payload item from files.xml
- * @param owner  depositor of the bag
- */
+/** The class arguments must match the json fields returned by the service easy-auth-info */
 case class AuthInfoItem(itemId: String,
                         owner: String,
                         dateAvailable: DateTime,
@@ -41,13 +39,16 @@ case class AuthInfoItem(itemId: String,
 }
 
 object AuthInfoItem {
+  // the formats required for the fields of the case class, by default dates are parsed with a time
   private implicit val jsonFormats: Formats = new DefaultFormats {
     override protected def dateFormatter: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  } + new EnumNameSerializer(RightsFor) ++ JodaTimeSerializers.all
+  } +
+    new EnumNameSerializer(RightsFor) ++
+    JodaTimeSerializers.all
 
   def fromJson(input: String): Try[AuthInfoItem] = {
     Try(parse(input).extract[AuthInfoItem]).recoverWith { case t =>
-      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: $input", t))
+      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: ${input.toOneLiner}", t))
     }
   }
 }

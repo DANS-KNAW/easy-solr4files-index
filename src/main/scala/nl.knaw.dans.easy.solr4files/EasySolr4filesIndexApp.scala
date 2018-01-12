@@ -113,12 +113,13 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
       .map(getFileItem(bag, ddm, _))
       .toStream
       .withFilter(_.isDefined)
-      .map{
+      .map {
         case Some(Success(f)) => createDoc(f)
         case Some(Failure(e)) => Failure(e)
+        case None => Failure(new Exception("should not happen because of the filter"))
       }
       .takeUntilFailure
-      .doIfFailure { case MixedResultsException(results: Seq[FileFeedback], _) =>
+      .doIfFailure { case MixedResultsException(results: Seq[_], _) =>
         results.foreach(fb => logger.info(fb.toString))
       }
       .map(results => BagSubmitted(bag.bagId.toString, results))
@@ -129,10 +130,10 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
                           fileNode: Node
                          ): Option[Try[FileItem]] = {
     getAccessibleAuthInfo(bag.bagId, fileNode) match {
-      case None => None
+      case None => Some(Failure(new Exception(s"invalid files.xml for ${ bag.bagId }: filepath attribute is missing in ${ fileNode.toString().toOneLiner }")))
       case Some(Failure(t)) => Some(Failure(t))
       case Some(Success(authInfoItem)) if !authInfoItem.isAccessible => None
-      case Some(Success(authInfoItem))  => Some(Success(FileItem(bag, ddm, fileNode, authInfoItem)))
+      case Some(Success(authInfoItem)) => Some(Success(FileItem(bag, ddm, fileNode, authInfoItem)))
     }
   }
 

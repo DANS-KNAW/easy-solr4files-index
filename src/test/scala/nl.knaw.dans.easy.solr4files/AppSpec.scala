@@ -17,7 +17,8 @@ package nl.knaw.dans.easy.solr4files
 
 import java.util.UUID
 
-import org.apache.commons.io.FileUtils.write
+import org.apache.commons.io.FileUtils.{ readFileToString, write }
+import org.apache.http.HttpStatus._
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.apache.solr.client.solrj.{ SolrClient, SolrRequest, SolrResponse }
@@ -26,6 +27,7 @@ import org.apache.solr.common.util.NamedList
 
 import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
+import scalaj.http.HttpResponse
 
 class AppSpec extends TestSupportFixture {
 
@@ -95,6 +97,47 @@ class AppSpec extends TestSupportFixture {
     val result = app.update(storeName, uuidCentaur)
     inside(result) { case Success(feedback) =>
       feedback.toString shouldBe s"Bag ${ uuidCentaur }: 7 times FileSubmittedWithContent, 2 times FileSubmittedWithOnlyMetadata"
+    }
+  }
+
+  it should "report a missing path in files.xml" in {
+    initVault()
+    val filesXmlPath = testDir.resolve(s"vault/stores/pdbs/bags/$uuidCentaur/metadata/files.xml")
+    val filesXmlContent = readFileToString(filesXmlPath.toFile).replaceAll("<file .*", "<file>")
+    write(filesXmlPath.toFile, filesXmlContent)
+
+    val result = new StubbedSolrApp().update(storeName, uuidCentaur)
+    inside(result) { case Failure(feedback) =>
+      feedback.toString should include(s"invalid files.xml for $uuidCentaur: filepath attribute is missing")
+      feedback.toString should endWith("<dcterms:format>video/mpeg</dcterms:format> <dcterms:title>hubble.mpg</dcterms:title> <accessibleToRights>RESTRICTED_GROUP</accessibleToRights> </file>")
+    }
+  }
+
+  it should "report problems when easy-auth-info is down" in {
+    initVault()
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(Failure(HttpStatusException("", HttpResponse("", SC_SERVICE_UNAVAILABLE, Map("Status" -> IndexedSeq("")))))) once()
+
+    val result = app.update(storeName, uuidCentaur)
+    inside(result) {
+      case Failure(MixedResultsException(_, HttpStatusException(_, HttpResponse(_, SC_SERVICE_UNAVAILABLE, _)))) =>
+    }
+  }
+
+  it should "report problems when easy-auth-info returns invalid content" in {
+    initVault()
+    val autInfoJson =
+      """{
+        |  "visibleTo":"ANONYMOUS"
+        |}""".stripMargin
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(Success(autInfoJson)) once()
+
+    val result = app.update(storeName, uuidCentaur)
+    inside(result) { case Failure(MixedResultsException(_, throwable)) =>
+      throwable.getMessage shouldBe
+        s"""parse error [class org.json4s.package$$MappingException: No usable value for itemId
+          |Did not find value which can be converted into java.lang.String] for: ${autInfoJson.toOneLiner}""".stripMargin
     }
   }
 
