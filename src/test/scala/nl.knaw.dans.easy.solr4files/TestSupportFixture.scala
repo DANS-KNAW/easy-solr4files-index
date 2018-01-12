@@ -40,9 +40,9 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   abstract class TestApp() extends EasySolr4filesIndexApp {
 
-    override lazy val properties: PropertiesConfiguration = new PropertiesConfiguration() {
+    override lazy val configuration: Configuration = new Configuration("", new PropertiesConfiguration() {
       addProperty("auth-info.url", "http://hostThatDoesNotExist:20170/")
-    }
+    })
 
     override val maxFileSizeToExtractContentFrom: Double = 64 * 1024 * 1024
     override val vaultBaseUri: URI = new URI(s"file:///${ testDir.resolve("vault").toAbsolutePath }/")

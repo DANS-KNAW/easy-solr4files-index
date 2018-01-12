@@ -160,7 +160,6 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
 
 object EasySolr4filesIndexApp {
 
-  def apply(configuration: Configuration): EasySolr4filesIndexApp = new EasySolr4filesIndexApp {
-    override val properties: PropertiesConfiguration = Option(configuration).map(_.properties).getOrElse(new PropertiesConfiguration())
-  }
+  def apply(conf: Configuration): EasySolr4filesIndexApp = new EasySolr4filesIndexApp {
+    override lazy val configuration: Configuration = conf  }
 }

@@ -118,6 +118,24 @@
       state: restarted
       enabled: yes
 
+########### auth info
+
+- hosts: "test"
+  vars:
+    dans_config_base: "/etc/opt/dans.knaw.nl"
+  become: yes
+  tasks:
+
+  - name: Installing auth-info package
+    yum:
+      name: "dans.knaw.nl-easy-auth-info"
+      state: latest
+
+  - service:
+      name: "easy-auth-info"
+      state: restarted
+      enabled: yes
+
 ########### ldap
 
 - hosts: "test"
