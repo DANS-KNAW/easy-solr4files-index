@@ -18,7 +18,7 @@ package nl.knaw.dans.easy.solr4files.components
 import java.net.URL
 import java.util.UUID
 
-import nl.knaw.dans.easy.solr4files.{ FileToShaMap, SolrLiterals, _ }
+import nl.knaw.dans.easy.solr4files.{ FileToShaMap, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.util.Try

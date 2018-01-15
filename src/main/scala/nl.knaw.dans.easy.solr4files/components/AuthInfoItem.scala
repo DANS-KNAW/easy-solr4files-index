@@ -19,11 +19,11 @@ import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
 import java.util.UUID
 
+import nl.knaw.dans.easy.solr4files._
 import org.joda.time.DateTime
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers }
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{ DefaultFormats, Formats }
-import nl.knaw.dans.easy.solr4files._
 
 import scala.util.{ Failure, Try }
 
@@ -34,8 +34,8 @@ case class AuthInfoItem(itemId: String,
                         accessibleTo: RightsFor.Value,
                         visibleTo: RightsFor.Value
                        ) {
-  val path: Path = Paths.get(itemId.replaceAll("^[^/]+/",""))
-  val bagID: UUID = UUID.fromString(itemId.replaceAll("/.*",""))
+  val path: Path = Paths.get(itemId.replaceAll("^[^/]+/", ""))
+  val bagID: UUID = UUID.fromString(itemId.replaceAll("/.*", ""))
   val isAccessible: Boolean = {
     accessibleTo != RightsFor.NONE
   }
@@ -51,7 +51,7 @@ object AuthInfoItem {
 
   def fromJson(input: String): Try[AuthInfoItem] = {
     Try(parse(input).extract[AuthInfoItem]).recoverWith { case t =>
-      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: ${input.toOneLiner}", t))
+      Failure(new Exception(s"parse error [${ t.getClass }: ${ t.getMessage }] for: ${ input.toOneLiner }", t))
     }
   }
 }

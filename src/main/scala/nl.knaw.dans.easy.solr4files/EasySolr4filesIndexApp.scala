@@ -21,7 +21,6 @@ import java.util.UUID
 import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.error.{ CompositeException, _ }
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatra.auth.strategy.BasicAuthStrategy.BasicAuthRequest
 
 import scala.util.{ Failure, Success, Try }
@@ -160,5 +159,6 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
 object EasySolr4filesIndexApp {
 
   def apply(conf: Configuration): EasySolr4filesIndexApp = new EasySolr4filesIndexApp {
-    override lazy val configuration: Configuration = conf  }
+    override lazy val configuration: Configuration = conf
+  }
 }

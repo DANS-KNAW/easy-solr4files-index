@@ -24,10 +24,10 @@ import nl.knaw.dans.easy.solr4files.components.Vault
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.scalamock.handlers.CallHandler1
-import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
 
-import scala.util.{ Success, Try }
+import scala.util.Try
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 

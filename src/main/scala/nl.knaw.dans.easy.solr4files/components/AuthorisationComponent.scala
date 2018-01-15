@@ -19,11 +19,11 @@ import java.net.URI
 import java.nio.file.Path
 import java.util.UUID
 
+import nl.knaw.dans.easy.solr4files._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.json4s.{ DefaultFormats, _ }
 
 import scala.util.Try
-import nl.knaw.dans.easy.solr4files._
 
 trait AuthorisationComponent extends DebugEnhancedLogging {
   this: HttpWorkerComponent =>

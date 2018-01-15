@@ -16,7 +16,7 @@
 package nl.knaw.dans.easy.solr4files.components
 
 import nl.knaw.dans.easy.solr4files.TestSupportFixture
-import nl.knaw.dans.easy.solr4files.components.RightsFor.{ NONE, RESTRICTED_GROUP }
+import nl.knaw.dans.easy.solr4files.components.RightsFor.RESTRICTED_GROUP
 import org.joda.time.DateTime
 
 class FileItemSpec extends TestSupportFixture {

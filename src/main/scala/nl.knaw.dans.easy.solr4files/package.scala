@@ -27,8 +27,8 @@ import org.apache.solr.common.util.NamedList
 import org.scalatra
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.util.{ Failure, Success, Try }
 import scala.xml.{ Elem, Node, XML }
 import scalaj.http.{ Http, HttpResponse }

@@ -152,7 +152,7 @@ class AppSpec extends TestSupportFixture {
     app.expectsHttpAsString(Success(authInfoJson))
 
     val result = app.update(storeName, uuid)
-    inside(result){
+    inside(result) {
       case Failure(MixedResultsException(_, e)) => e.getMessage shouldBe
         s"""parse error [class org.json4s.package$$MappingException: No usable value for itemId
            |Did not find value which can be converted into java.lang.String] for: ${ authInfoJson.toOneLiner }""".stripMargin

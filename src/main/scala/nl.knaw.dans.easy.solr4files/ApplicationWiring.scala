@@ -19,7 +19,6 @@ import java.net.{ URI, URL }
 
 import nl.knaw.dans.easy.solr4files.components._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.solr.client.solrj.SolrClient
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 
