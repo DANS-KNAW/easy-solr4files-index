@@ -15,7 +15,9 @@
  */
 package nl.knaw.dans.easy.solr4files.components
 
+import java.nio.file.{ Path, Paths }
 import java.text.SimpleDateFormat
+import java.util.UUID
 
 import org.joda.time.DateTime
 import org.json4s.ext.{ EnumNameSerializer, JodaTimeSerializers }
@@ -32,7 +34,8 @@ case class AuthInfoItem(itemId: String,
                         accessibleTo: RightsFor.Value,
                         visibleTo: RightsFor.Value
                        ) {
-  val path: String = itemId.replaceAll("^[^/]+/","")
+  val path: Path = Paths.get(itemId.replaceAll("^[^/]+/",""))
+  val bagID: UUID = UUID.fromString(itemId.replaceAll("/.*",""))
   val isAccessible: Boolean = {
     accessibleTo != RightsFor.NONE
   }

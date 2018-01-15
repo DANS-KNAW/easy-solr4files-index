@@ -17,7 +17,8 @@ package nl.knaw.dans.easy.solr4files
 
 import java.util.UUID
 
-import org.apache.commons.io.FileUtils.{ readFileToString, write }
+import nl.knaw.dans.easy.solr4files.components._
+import org.apache.commons.io.FileUtils.write
 import org.apache.http.HttpStatus._
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
@@ -71,7 +72,7 @@ class AppSpec extends TestSupportFixture {
     }
   }
 
-  private def jsonAuthItem(uuid: UUID, path: String) = Success(
+  private def anonymousAuthItem(uuid: UUID, path: String) = Success(
     s"""{
        |  "itemId":"$uuid/$path",
        |  "owner":"someone",
@@ -84,15 +85,15 @@ class AppSpec extends TestSupportFixture {
     initVault()
     assume(canConnectToEasySchemas)
     val app = new StubbedSolrApp()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/path/to/a/random/video/hubble.mpg")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur.mpg")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur.srt")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/centaur-nederlands.srt")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel01.docx")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel01.txt")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel02.txt")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/reisverslag/deel03.txt")) once()
-    app.expectsHttpAsString(jsonAuthItem(uuidCentaur, "data/ruimtereis01_verklaring.txt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/path/to/a/random/video/hubble.mpg")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur.mpg")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur.srt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur-nederlands.srt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel01.docx")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel01.txt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel02.txt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel03.txt")) once()
+    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/ruimtereis01_verklaring.txt")) once()
 
     val result = app.update(storeName, uuidCentaur)
     inside(result) { case Success(feedback) =>
@@ -100,20 +101,9 @@ class AppSpec extends TestSupportFixture {
     }
   }
 
-  it should "report a missing path in files.xml" in {
-    initVault()
-    val filesXmlPath = testDir.resolve(s"vault/stores/pdbs/bags/$uuidCentaur/metadata/files.xml")
-    val filesXmlContent = readFileToString(filesXmlPath.toFile).replaceAll("<file .*", "<file>")
-    write(filesXmlPath.toFile, filesXmlContent)
-
-    val result = new StubbedSolrApp().update(storeName, uuidCentaur)
-    inside(result) { case Failure(feedback) =>
-      feedback.toString should include(s"invalid files.xml for $uuidCentaur: filepath attribute is missing")
-      feedback.toString should endWith("<dcterms:format>video/mpeg</dcterms:format> <dcterms:title>hubble.mpg</dcterms:title> <accessibleToRights>RESTRICTED_GROUP</accessibleToRights> </file>")
-    }
-  }
-
   it should "report problems when easy-auth-info is down" in {
+    // this tests the chain of error handling starting at AuthInfo
+    // other FileItem problems are tested with "updateFiles"
     initVault()
     val app = new StubbedSolrApp()
     app.expectsHttpAsString(Failure(HttpStatusException("", HttpResponse("", SC_SERVICE_UNAVAILABLE, Map("Status" -> IndexedSeq("")))))) once()
@@ -124,33 +114,68 @@ class AppSpec extends TestSupportFixture {
     }
   }
 
-  it should "report problems when easy-auth-info returns invalid content" in {
-    initVault()
-    val autInfoJson =
-      """{
-        |  "visibleTo":"ANONYMOUS"
-        |}""".stripMargin
-    val app = new StubbedSolrApp()
-    app.expectsHttpAsString(Success(autInfoJson)) once()
-
-    val result = app.update(storeName, uuidCentaur)
-    inside(result) { case Failure(MixedResultsException(_, throwable)) =>
-      throwable.getMessage shouldBe
-        s"""parse error [class org.json4s.package$$MappingException: No usable value for itemId
-          |Did not find value which can be converted into java.lang.String] for: ${autInfoJson.toOneLiner}""".stripMargin
-    }
-  }
-
   it should "not stumble on difficult file names" in {
     initVault()
     assume(canConnectToEasySchemas)
     val app = new StubbedSolrApp()
-    app.expectsHttpAsString(jsonAuthItem(uuidAnonymized, "YYY")) anyNumberOfTimes()
+    app.expectsHttpAsString(anonymousAuthItem(uuidAnonymized, "YYY")) anyNumberOfTimes()
 
     val result = app.update(storeName, uuidAnonymized)
     inside(result) { case Success(feedback) =>
       feedback.toString shouldBe s"Bag ${ uuidAnonymized }: 3 times FileSubmittedWithContent"
     }
+  }
+
+  "updateFiles" should "retrieve checksum, files size nor DDM.solrLiterals because file is not accessible" in {
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(Success(
+      s"""{
+         |  "itemId":"$uuid/xy.z",
+         |  "owner":"someone",
+         |  "dateAvailable":"1992-07-30",
+         |  "accessibleTo":"NONE",
+         |  "visibleTo":"NONE"
+         |}""".stripMargin)
+    ) once()
+    class MockedDDM extends DDM(<empty/>)
+    class MockedBag extends Bag("pdbs", uuid, mock[Vault])
+    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files><file filepath="xy.z"/></files>)
+    result shouldBe Success(BagSubmitted(uuid.toString, Seq.empty))
+  }
+
+  it should "report problems when easy-auth-info returns invalid content" in {
+    clearVault()
+    write(testDir.resolve(s"vault/stores/pdbs/bags/$uuid/metadata/dataset.xml").toFile, "<ddm/>")
+    write(testDir.resolve(s"vault/stores/pdbs/bags/$uuid/metadata/files.xml").toFile, "<files><file filepath='xy.z'/></files>")
+    val authInfoJson = """{ "visibleTo":"ANONYMOUS" }""".stripMargin
+    val app = new StubbedSolrApp()
+    app.expectsHttpAsString(Success(authInfoJson))
+
+    val result = app.update(storeName, uuid)
+    inside(result){
+      case Failure(MixedResultsException(_, e)) => e.getMessage shouldBe
+        s"""parse error [class org.json4s.package$$MappingException: No usable value for itemId
+           |Did not find value which can be converted into java.lang.String] for: ${ authInfoJson.toOneLiner }""".stripMargin
+    }
+  }
+
+  it should "report an invalid bag: file-item without a path" in {
+    val app = new StubbedSolrApp()
+    class MockedDDM extends DDM(<empty/>)
+    class MockedBag extends Bag("pdbs", uuid, mock[Vault])
+    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files><file/></files>)
+    inside(result) {
+      case Failure(MixedResultsException(_, e)) => e.getMessage shouldBe
+        s"invalid files.xml for $uuid: filepath attribute is missing in <file/>"
+    }
+  }
+
+  it should "accept a bag without files" in {
+    val app = new StubbedSolrApp()
+    class MockedDDM extends DDM(<empty/>)
+    class MockedBag extends Bag("pdbs", uuid, mock[Vault])
+    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files></files>)
+    result shouldBe Success(BagSubmitted(uuid.toString, Seq.empty))
   }
 
   "delete" should "call the stubbed solrClient.deleteByQuery" in {

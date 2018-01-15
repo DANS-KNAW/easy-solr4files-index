@@ -20,21 +20,22 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.Node
 
-case class FileItem(bag: Bag, ddm: DDM, xml: Node, authInfoItem: AuthInfoItem) extends DebugEnhancedLogging {
+case class FileItem(bag: Bag, xml: Node, authInfoItem: AuthInfoItem) extends DebugEnhancedLogging {
 
-  val path: String = authInfoItem.path
+  private val path: String = authInfoItem.path.toString
 
   lazy val size: Long = bag.fileSize(path)
-
-  val mimeType: String = (xml \ "format").text
 
   // lazy postpones loading Bag.sha's
   lazy val solrLiterals: SolrLiterals = Seq(
     ("file_path", path),
     ("file_title", (xml \ "title").text),
     ("file_checksum", bag.sha(path)),
-    ("file_mime_type", mimeType),
+    ("file_mime_type", (xml \ "format").text),
     ("file_size", size.toString),
-    ("file_accessible_to", authInfoItem.accessibleTo.toString)
+    ("file_accessible_to", authInfoItem.accessibleTo.toString),
+    ("dataset_depositor_id", authInfoItem.owner),
+    ("dataset_id", authInfoItem.bagID.toString),
+    ("dataset_store_id", bag.storeName)
   )
 }

@@ -30,17 +30,6 @@ case class Bag(storeName: String,
                private val vault: Vault
               ) extends DebugEnhancedLogging {
 
-  private def getDepositor: String = {
-    val key = "EASY-User-Account"
-    for {
-      url <- vault.fileURL(storeName, bagId, "bag-info.txt")
-      lines <- url.readLines
-    } yield lines
-      .filter(_.trim.startsWith(key))
-      .map(_.replace(key, "").replace(":", "").trim)
-      .mkString
-  }.getOrElse("")
-
   def fileUrl(path: String): Try[URL] = {
     vault.fileURL(storeName, bagId, path)
   }
@@ -76,10 +65,4 @@ case class Bag(storeName: String,
   def loadFilesXML: Try[Elem] = vault
     .fileURL(storeName, bagId, "metadata/files.xml")
     .flatMap(_.loadXml)
-
-  val solrLiterals: SolrLiterals = Seq(
-    ("dataset_store_id", storeName),
-    ("dataset_depositor_id", getDepositor),
-    ("dataset_id", bagId.toString)
-  )
 }

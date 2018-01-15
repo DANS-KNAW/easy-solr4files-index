@@ -31,6 +31,7 @@ import scala.util.{ Success, Try }
 
 trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 
+  val uuid: UUID = UUID.randomUUID()
   lazy val testDir: Path = {
     val path = Paths.get(s"target/test/${ getClass.getSimpleName }").toAbsolutePath
     FileUtils.deleteQuietly(path.toFile)

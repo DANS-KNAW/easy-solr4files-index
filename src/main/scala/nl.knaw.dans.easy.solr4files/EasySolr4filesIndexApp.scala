@@ -110,11 +110,11 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
    */
   def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[BagSubmitted] = {
     (filesXML \ "file")
-      .map(getFileItem(bag, ddm, _))
+      .map(getFileItem(bag, _))
       .toStream
       .withFilter(_.isDefined)
       .map {
-        case Some(Success(f)) => createDoc(f)
+        case Some(Success(f)) => createDoc(f, ddm)
         case Some(Failure(e)) => Failure(e)
         case None => Failure(new Exception("should not happen because of the filter"))
       }
@@ -125,15 +125,12 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
       .map(results => BagSubmitted(bag.bagId.toString, results))
   }
 
-  private def getFileItem(bag: Bag,
-                          ddm: DDM,
-                          fileNode: Node
-                         ): Option[Try[FileItem]] = {
+  private def getFileItem(bag: Bag, fileNode: Node): Option[Try[FileItem]] = {
     getAccessibleAuthInfo(bag.bagId, fileNode) match {
       case None => Some(Failure(new Exception(s"invalid files.xml for ${ bag.bagId }: filepath attribute is missing in ${ fileNode.toString().toOneLiner }")))
       case Some(Failure(t)) => Some(Failure(t))
       case Some(Success(authInfoItem)) if !authInfoItem.isAccessible => None
-      case Some(Success(authInfoItem)) => Some(Success(FileItem(bag, ddm, fileNode, authInfoItem)))
+      case Some(Success(authInfoItem)) => Some(Success(FileItem(bag, fileNode, authInfoItem)))
     }
   }
 
@@ -145,7 +142,9 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
       )
   }
 
-  def authenticate(authRequest: BasicAuthRequest): Try[Option[User]] = authentication.authenticate(authRequest)
+  def authenticate(authRequest: BasicAuthRequest): Try[Option[User]] = {
+    authentication.authenticate(authRequest)
+  }
 
   def init(): Try[Unit] = {
     // Do any initialization of the application here. Typical examples are opening
