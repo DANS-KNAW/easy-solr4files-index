@@ -128,7 +128,7 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
     }
   }
 
-  private def getAccessibleAuthInfo(bagID: UUID, fileNode: Node): Option[Try[AuthInfoItem]] = {
+  private def getAccessibleAuthInfo(bagID: UUID, fileNode: Node): Option[Try[AuthorisationItem]] = {
     fileNode
       .attribute("filepath")
       .map(attribute => authorisation.getAuthInfoItem(bagID, Paths.get(attribute.text))

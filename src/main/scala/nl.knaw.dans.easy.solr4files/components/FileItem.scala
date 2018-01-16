@@ -20,7 +20,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.xml.Node
 
-case class FileItem(bag: Bag, xml: Node, authInfoItem: AuthInfoItem) extends DebugEnhancedLogging {
+case class FileItem(bag: Bag, xml: Node, authInfoItem: AuthorisationItem) extends DebugEnhancedLogging {
 
   //strip the UUID from the itemId including the first slash
   val path: String = authInfoItem.itemId.replaceAll("^[^/]+/", "")

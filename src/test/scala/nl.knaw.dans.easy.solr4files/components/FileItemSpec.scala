@@ -42,7 +42,7 @@ class FileItemSpec extends TestSupportFixture {
       <dcterms:relation xml:lang="en">data/reisverslag/centaur.srt</dcterms:relation>
       <dcterms:relation xml:lang="nl">data/reisverslag/centaur-nederlands.srt</dcterms:relation>
     </file>
-    val authInfoItem = AuthInfoItem(
+    val authInfoItem = AuthorisationItem(
       itemId = s"$uuid/$filePath",
       owner = "someone",
       dateAvailable = DateTime.now,
