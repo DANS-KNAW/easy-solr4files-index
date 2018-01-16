@@ -22,7 +22,8 @@ import scala.xml.Node
 
 case class FileItem(bag: Bag, xml: Node, authInfoItem: AuthInfoItem) extends DebugEnhancedLogging {
 
-  private val path: String = authInfoItem.path.toString
+  //strip the UUID from the itemId including the first slash
+  val path: String = authInfoItem.itemId.replaceAll("^[^/]+/", "")
 
   lazy val size: Long = bag.fileSize(path)
 
@@ -35,7 +36,7 @@ case class FileItem(bag: Bag, xml: Node, authInfoItem: AuthInfoItem) extends Deb
     ("file_size", size.toString),
     ("file_accessible_to", authInfoItem.accessibleTo.toString),
     ("dataset_depositor_id", authInfoItem.owner),
-    ("dataset_id", authInfoItem.bagID.toString),
+    ("dataset_id", bag.bagId.toString),
     ("dataset_store_id", bag.storeName)
   )
 }

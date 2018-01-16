@@ -42,7 +42,7 @@ trait Solr extends DebugEnhancedLogging {
   def createDoc(item: FileItem, ddm: DDM): Try[FileFeedback] = {
     item
       .bag
-      .fileUrl(item.authInfoItem.path.toString)
+      .fileUrl(item.path)
       .flatMap(createDoc(item, ddm, _))
   }
 

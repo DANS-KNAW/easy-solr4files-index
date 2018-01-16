@@ -34,8 +34,6 @@ case class AuthInfoItem(itemId: String,
                         accessibleTo: RightsFor.Value,
                         visibleTo: RightsFor.Value
                        ) {
-  val path: Path = Paths.get(itemId.replaceAll("^[^/]+/", ""))
-  val bagID: UUID = UUID.fromString(itemId.replaceAll("/.*", ""))
   val isAccessible: Boolean = {
     accessibleTo != RightsFor.NONE
   }
