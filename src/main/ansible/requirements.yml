@@ -21,6 +21,6 @@
 - src: https://github.com/DANS-KNAW/dans.solr
   version: 3.6.3-dans
 - src: https://github.com/DANS-KNAW/dans.easy-ldap-dir
-  version: v2.0.2
+  version: v3.0.0
 - src: https://github.com/DANS-KNAW/dans.easy-test-users
-  version: v1.2.0
+  version: v2.0.0
