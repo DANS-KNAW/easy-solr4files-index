@@ -1,0 +1,5 @@
+stores_dir: "/data/bag-stores"
+bag_stores:
+  - { name: "pdbs",      base_dir: "{{ stores_dir }}/pdbs" }
+  - { name: "easy",      base_dir: "{{ stores_dir }}/easy" }
+  - { name: "pan",       base_dir: "{{ stores_dir }}/pan" }
