@@ -109,17 +109,12 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
    */
   def updateFiles(bag: Bag, ddm: DDM, filesXML: Elem): Try[BagSubmitted] = {
     (filesXML \ "file")
-      .map(getFileItem(bag, _))
-      .toStream
-      .withFilter(_.isDefined)
-      .map {
-        case Some(Success(f)) => createDoc(f, ddm)
-        case Some(Failure(e)) => Failure(e)
-        case None => Failure(new Exception("should not happen because of the filter"))
-      }
+      .toStream // prevent execution beyond the first failure
+      .flatMap(getFileItem(bag, _).toSeq) // skip the None's and unwrap the Some's
+      .map(_.flatMap(createDoc(_, ddm))) // createDoc if getFileItem did not fail
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], _) =>
-        results.foreach(fb => logger.info(fb.toString))
+        results.foreach(fileFeedBack => logger.info(fileFeedBack.toString))
       }
       .map(results => BagSubmitted(bag.bagId.toString, results))
   }
@@ -136,8 +131,7 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
   private def getAccessibleAuthInfo(bagID: UUID, fileNode: Node): Option[Try[AuthInfoItem]] = {
     fileNode
       .attribute("filepath")
-      .map(attribute =>
-        authorisation.getAuthInfoItem(bagID, Paths.get(attribute.text))
+      .map(attribute => authorisation.getAuthInfoItem(bagID, Paths.get(attribute.text))
       )
   }
 

@@ -36,9 +36,8 @@ trait AuthorisationComponent extends DebugEnhancedLogging {
     private implicit val jsonFormats: Formats = DefaultFormats
 
     def getAuthInfoItem(bagId: UUID, path: Path): Try[AuthInfoItem] = {
+      val uri = baseUri.resolve(s"$bagId/${ escapePath(path) }")
       for {
-        f <- Try(escapePath(path))
-        uri = baseUri.resolve(s"$bagId/$f")
         jsonString <- http.getHttpAsString(uri)
         jsonOneLiner = jsonString.toOneLiner
         _ = logger.debug(s"auth-info: ${ jsonOneLiner }")

@@ -34,6 +34,9 @@ class AppSpec extends TestSupportFixture {
 
   private val storeName = "pdbs"
 
+  private class EmptyDDM extends DDM(<empty/>)
+  private val mockedDDM: DDM = mock[EmptyDDM]
+
   private class StubbedSolrApp() extends TestApp {
     override val solrClient: SolrClient = new SolrClient() {
       // can't use mock because SolrClient has a final method
@@ -85,15 +88,17 @@ class AppSpec extends TestSupportFixture {
     initVault()
     assume(canConnectToEasySchemas)
     val app = new StubbedSolrApp()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/path/to/a/random/video/hubble.mpg")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur.mpg")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur.srt")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/centaur-nederlands.srt")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel01.docx")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel01.txt")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel02.txt")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/reisverslag/deel03.txt")) once()
-    app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, "data/ruimtereis01_verklaring.txt")) once()
+    Seq(
+      "data/path/to/a/random/video/hubble.mpg",
+      "data/reisverslag/centaur.mpg",
+      "data/reisverslag/centaur.srt",
+      "data/reisverslag/centaur-nederlands.srt",
+      "data/reisverslag/deel01.docx",
+      "data/reisverslag/deel01.txt",
+      "data/reisverslag/deel02.txt",
+      "data/reisverslag/deel03.txt",
+      "data/ruimtereis01_verklaring.txt"
+    ).foreach(f => app.expectsHttpAsString(anonymousAuthItem(uuidCentaur, f)) once())
 
     val result = app.update(storeName, uuidCentaur)
     inside(result) { case Success(feedback) =>
@@ -137,9 +142,8 @@ class AppSpec extends TestSupportFixture {
          |  "visibleTo":"NONE"
          |}""".stripMargin)
     ) once()
-    class MockedDDM extends DDM(<empty/>)
     class MockedBag extends Bag("pdbs", uuid, mock[Vault])
-    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files><file filepath="xy.z"/></files>)
+    val result = app.updateFiles(mock[MockedBag], mockedDDM, <files><file filepath="xy.z"/></files>)
     result shouldBe Success(BagSubmitted(uuid.toString, Seq.empty))
   }
 
@@ -161,9 +165,8 @@ class AppSpec extends TestSupportFixture {
 
   it should "report an invalid bag: file-item without a path" in {
     val app = new StubbedSolrApp()
-    class MockedDDM extends DDM(<empty/>)
     class MockedBag extends Bag("pdbs", uuid, mock[Vault])
-    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files><file/></files>)
+    val result = app.updateFiles(mock[MockedBag], mockedDDM, <files><file/></files>)
     inside(result) {
       case Failure(MixedResultsException(_, e)) => e.getMessage shouldBe
         s"invalid files.xml for $uuid: filepath attribute is missing in <file/>"
@@ -172,9 +175,8 @@ class AppSpec extends TestSupportFixture {
 
   it should "accept a bag without files" in {
     val app = new StubbedSolrApp()
-    class MockedDDM extends DDM(<empty/>)
     class MockedBag extends Bag("pdbs", uuid, mock[Vault])
-    val result = app.updateFiles(mock[MockedBag], mock[MockedDDM], <files></files>)
+    val result = app.updateFiles(mock[MockedBag], mockedDDM, <files></files>)
     result shouldBe Success(BagSubmitted(uuid.toString, Seq.empty))
   }
 
@@ -195,7 +197,7 @@ class AppSpec extends TestSupportFixture {
         |    6ccadbad-650c-47ec-936d-2ef42e5f3cda""".stripMargin
     )
     val result = new StubbedSolrApp() {
-      // vaultBagIds/bags can't be a file and directory so we need a stub, a failure demonstrates it's called
+      // vaultBagIds/bags can't be a file and directory so we need a mockedDDM, a failure demonstrates it's called
       override def update(store: String, uuid: UUID): Try[BagSubmitted] = {
         Failure(new Exception("stubbed ApplicationWiring.update"))
       }
@@ -214,7 +216,7 @@ class AppSpec extends TestSupportFixture {
     )
     val result = new StubbedSolrApp() {
 
-      // vaultStoreNames/stores can't be a file and directory so we need a stub, a failure demonstrates it's called
+      // vaultStoreNames/stores can't be a file and directory so we need a mockedDDM, a failure demonstrates it's called
       override def initSingleStore(storeName: String): Try[StoreSubmitted] = {
         Failure(new Exception("stubbed ApplicationWiring.initSingleStore"))
       }
