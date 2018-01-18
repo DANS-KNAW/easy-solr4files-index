@@ -21,7 +21,7 @@ import org.joda.time.DateTime
 
 class FileItemSpec extends TestSupportFixture {
 
-  class MockedBag extends Bag("pdbs", uuid, mock[Vault]) {}
+  class MockedBag extends Bag("pdbs", uuid, mock[Vault])
   private val mockedBag = mock[MockedBag]
 
   private def bagExpects(filePath: String, fileSha: String, fileSize: Int) = {
