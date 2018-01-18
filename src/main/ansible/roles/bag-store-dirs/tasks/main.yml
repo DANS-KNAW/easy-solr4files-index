@@ -14,11 +14,6 @@
 # limitations under the License.
 #
 
-- name: Installing bag-store package
-  yum:
-    name: "dans.knaw.nl-easy-bag-store"
-    state: latest
-
 - name: Configure bag stores
   lineinfile:
       dest: "{{ dans_config_base }}/easy-bag-store/stores.properties"
@@ -39,8 +34,3 @@
     src: /vagrant/src/test/resources/vault/stores/pdbs/bags
     dest: /home/vagrant/test-data
     state: link
-
-- service:
-    name: "easy-bag-store"
-    state: restarted
-    enabled: yes
