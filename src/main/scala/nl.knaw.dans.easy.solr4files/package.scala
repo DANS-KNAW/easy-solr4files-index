@@ -50,6 +50,8 @@ package object solr4files extends DebugEnhancedLogging {
     extends Exception(s"$msg - ${ response.statusLine }, details: ${ response.body }")
 
   implicit class RichString(val s: String) extends AnyVal {
+
+    // TODO candidate for dans-scala-lib
     def toOneLiner: String = s.split("\n").map(_.trim).mkString(" ")
   }
 
