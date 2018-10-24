@@ -56,8 +56,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     }
     override val authorisation: Authorisation = new Authorisation {
       override val baseUri: URI = new URI("http://authInfoHostDoesNotExist:20170/")
-      override val connectionTimeOut: Int = 2000
-      override val readTimeOut: Int = 2000
+      override val connectionTimeOutMs: Int = 2000
+      override val readTimeOutMs: Int = 2000
     }
     override val http: HttpWorker = mock[HttpWorker]
 

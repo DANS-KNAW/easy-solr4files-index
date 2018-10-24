@@ -32,15 +32,15 @@ trait AuthorisationComponent extends DebugEnhancedLogging {
 
   trait Authorisation {
     val baseUri: URI
-    val connectionTimeOut: Int // ms
-    val readTimeOut: Int // ms
+    val connectionTimeOutMs: Int
+    val readTimeOutMs: Int
 
     private implicit val jsonFormats: Formats = DefaultFormats
 
     def getAuthInfoItem(bagId: UUID, path: Path): Try[AuthorisationItem] = {
       val uri = baseUri.resolve(s"$bagId/${ escapePath(path) }")
       for {
-        jsonString <- http.getHttpAsString(uri, connectionTimeOut, readTimeOut)
+        jsonString <- http.getHttpAsString(uri, connectionTimeOutMs, readTimeOutMs)
         jsonOneLiner = jsonString.toOneLiner
         _ = logger.debug(s"auth-info: ${ jsonOneLiner }")
         authInfoItem <- AuthorisationItem.fromJson(jsonOneLiner)
