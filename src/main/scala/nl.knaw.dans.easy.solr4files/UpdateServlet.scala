@@ -32,11 +32,6 @@ class UpdateServlet(app: EasySolr4filesIndexApp) extends ScalatraServlet
   with DebugEnhancedLogging {
   logger.info("File index Servlet running...")
 
-  get("/") {
-    contentType = "text/plain"
-    Ok(s"EASY File Index is running v${ app.configuration.version }.").logResponse //TODO does this need to be in the update servlet?
-  }
-
   private def respond(result: Try[String]): ActionResult = {
     val msgPrefix = "Log files should show which actions succeeded. Finally failed with: "
     result.map(Ok(_))

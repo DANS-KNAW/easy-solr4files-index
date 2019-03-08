@@ -15,10 +15,10 @@
  */
 package nl.knaw.dans.easy.solr4files
 
+import org.apache.http.HttpStatus._
 import org.scalamock.scalatest.MockFactory
 import org.scalatra.test.EmbeddedJettyContainer
 import org.scalatra.test.scalatest.ScalatraSuite
-import org.apache.http.HttpStatus._
 
 class EasySolr4FilesServletSpec extends TestSupportFixture
   with EmbeddedJettyContainer
