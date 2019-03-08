@@ -26,7 +26,7 @@ class EasySolr4FilesServletSpec extends TestSupportFixture
   with MockFactory {
 
   private val app = mock[TestApp]
-  addServlet(new UpdateServlet(app), "/")
+  addServlet(new EasySolr4FilesServlet(app), "/")
 
   "get /" should "return a 200 stating the service is running and the version number" in {
     get("/") {
