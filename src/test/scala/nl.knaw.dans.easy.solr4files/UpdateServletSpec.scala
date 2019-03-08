@@ -35,7 +35,7 @@ class UpdateServletSpec extends TestSupportFixture
 
   "get /" should "return the message that the service is running" in {
     get("/") {
-      body shouldBe "EASY File Index is running."
+      body shouldBe s"EASY File Index is running v${ app.configuration.version }."
       status shouldBe SC_OK
     }
   }

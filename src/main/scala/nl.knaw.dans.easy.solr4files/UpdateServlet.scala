@@ -34,7 +34,7 @@ class UpdateServlet(app: EasySolr4filesIndexApp) extends ScalatraServlet
 
   get("/") {
     contentType = "text/plain"
-    Ok("EASY File Index is running.").logResponse
+    Ok(s"EASY File Index is running v${ app.configuration.version }.").logResponse //TODO does this need to be in the update servlet?
   }
 
   private def respond(result: Try[String]): ActionResult = {
