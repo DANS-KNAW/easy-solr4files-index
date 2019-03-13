@@ -62,7 +62,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     override val http: HttpWorker = mock[HttpWorker]
 
     def expectsHttpAsString(result: Try[String]): CallHandler3[URI, Int, Int, Try[String]] = {
-      (http.getHttpAsString(_: URI, _: Int, _: Int)) expects (*, *, *) returning result
+      (http.getHttpAsString(_: URI, _: Int, _: Int)) expects(*, *, *) returning result
     }
   }
 
