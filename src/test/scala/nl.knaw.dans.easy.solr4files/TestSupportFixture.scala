@@ -41,7 +41,7 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
 
   abstract class TestApp() extends EasySolr4filesIndexApp {
 
-    override lazy val configuration: Configuration = new Configuration("", new PropertiesConfiguration() {
+    override lazy val configuration: Configuration = new Configuration("1.0.0", new PropertiesConfiguration() {
       addProperty("auth-info.url", "http://hostThatDoesNotExist:20170/")
       addProperty("auth-info.connection-timeout-ms", 2000)
       addProperty("auth-info.read-timeout-ms", 2000)

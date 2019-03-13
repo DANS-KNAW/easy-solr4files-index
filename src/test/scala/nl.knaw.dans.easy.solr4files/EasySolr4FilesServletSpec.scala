@@ -27,10 +27,11 @@ class EasySolr4FilesServletSpec extends TestSupportFixture
 
   private val app = mock[TestApp]
   addServlet(new EasySolr4FilesServlet(app), "/")
+  private val testVersion = "1.0.0"
 
   "get /" should "return a 200 stating the service is running and the version number" in {
     get("/") {
-      body shouldBe s"EASY File Index is running v${ app.configuration.version }." //app.configuration.version is empty
+      body shouldBe s"EASY File Index is running v$testVersion."
       status shouldBe SC_OK
     }
   }
