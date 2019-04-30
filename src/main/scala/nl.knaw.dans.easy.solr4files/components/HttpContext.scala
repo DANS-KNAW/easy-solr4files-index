@@ -23,5 +23,5 @@ trait HttpContext {
 
   lazy val userAgent: String = s"easy-solr4files-index/$applicationVersion"
 
-  object Http extends BaseHttp(userAgent = userAgent)
+  implicit object Http extends BaseHttp(userAgent = userAgent)
 }
