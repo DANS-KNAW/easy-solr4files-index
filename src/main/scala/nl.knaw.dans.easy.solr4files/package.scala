@@ -152,10 +152,12 @@ package object solr4files extends DebugEnhancedLogging {
   implicit class RichURL(val left: URL) {
 
     def loadXml(implicit http: BaseHttp): Try[Elem] = {
+      logger.info(s"loading xml from $left")
       getContent.flatMap(s => Try(XML.loadString(s)))
     }
 
     def readLines(implicit http: BaseHttp): Try[Seq[String]] = {
+      logger.info(s"loading text from $left")
       getContent.map(_.split("\n"))
     }
 
