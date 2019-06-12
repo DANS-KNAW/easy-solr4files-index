@@ -113,7 +113,9 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
       .flatMap(getFileItem(bag, _).toSeq) // skip the None's and unwrap the Some's
       .map(_.flatMap(createDoc(_, ddm))) // createDoc if getFileItem did not fail
       .takeUntilFailure
-      .doIfFailure { case MixedResultsException(results: Seq[_], _) =>
+      .doIfFailure { case MixedResultsException(results: Seq[_], e: Throwable) =>
+        logger.error(e.getMessage)
+        logger.info("Indexing will be stopped. The files up till this error have been submitted; the list of submitted files here below:")
         results.foreach(fileFeedBack => logger.info(fileFeedBack.toString))
       }
       .map(results => BagSubmitted(bag.bagId.toString, results))
