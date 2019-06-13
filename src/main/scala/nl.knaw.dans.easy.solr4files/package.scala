@@ -178,9 +178,9 @@ package object solr4files extends DebugEnhancedLogging {
       else {
         Try(http(left.toString).method("HEAD").asString).flatMap {
           case response if response.isSuccess =>
-            response.headers("content-length").headOption
+            response.header("File-Size")
               .map(cl => Success(cl.toLong))
-              .getOrElse(Failure(HttpStatusException(s"no content-length header found in response of $left", response)))
+              .getOrElse(Failure(HttpStatusException(s"no File-Size header found in response of $left", response)))
           case response => Failure(HttpStatusException(s"getContentLength($left)", response))
         }
       }
