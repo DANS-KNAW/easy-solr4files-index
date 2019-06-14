@@ -115,7 +115,7 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
       .takeUntilFailure
       .doIfFailure { case MixedResultsException(results: Seq[_], e: Throwable) =>
         logger.error(e.getMessage)
-        logger.info("Indexing will be stopped. The files up till this error have been submitted; the list of submitted files here below:")
+        logger.info("Indexing has stopped, because one of the files could not be indexed. Only the following files are submitted:")
         results.foreach(fileFeedBack => logger.info(fileFeedBack.toString))
       }
       .map(results => BagSubmitted(bag.bagId.toString, results))
