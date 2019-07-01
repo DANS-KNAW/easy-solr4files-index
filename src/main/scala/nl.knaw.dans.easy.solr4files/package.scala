@@ -176,12 +176,10 @@ package object solr4files extends DebugEnhancedLogging {
       if (left.getProtocol.toLowerCase == "file")
         Try(new File(left.getPath).length)
       else {
-        Try(http(left.toString).method("HEAD").asString).flatMap {
-          case response if response.isSuccess =>
-            response.header("File-Size")
-              .map(cl => Success(cl.toLong))
-              .getOrElse(Failure(HttpStatusException(s"no File-Size header found in response of $left", response)))
-          case response => Failure(HttpStatusException(s"getContentLength($left)", response))
+        val fileSizesUrl = left.toString.replace("bags", "bags/filesizes")
+        Try(http(fileSizesUrl).method("GET").asString).flatMap {
+          case response if response.isSuccess => Success(response.body.toLong)
+          case response => Failure(HttpStatusException(s"get($fileSizesUrl)", response))
         }
       }
     }.doIfFailure { case e => logger.warn(e.getMessage, e) }
