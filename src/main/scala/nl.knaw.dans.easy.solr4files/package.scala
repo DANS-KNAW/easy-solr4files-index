@@ -172,14 +172,14 @@ package object solr4files extends DebugEnhancedLogging {
       }
     }
 
-    def getContentLength(implicit http: BaseHttp): Long = {
+    def getFileSize(implicit http: BaseHttp): Long = {
       if (left.getProtocol.toLowerCase == "file")
         Try(new File(left.getPath).length)
       else {
         val fileSizesUrl = left.toString.replace("bags", "bags/filesizes")
         Try(http(fileSizesUrl).method("GET").asString).flatMap {
-          case response if response.isSuccess => Success(response.body.toLong)
-          case response => Failure(HttpStatusException(s"get($fileSizesUrl)", response))
+          case response if response.isSuccess => Try { response.body.toLong }
+          case response => Failure(HttpStatusException(s"getFileSize($fileSizesUrl)", response))
         }
       }
     }.doIfFailure { case e => logger.warn(e.getMessage, e) }
