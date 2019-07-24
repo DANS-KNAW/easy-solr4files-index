@@ -49,7 +49,7 @@ class VaultSpec extends TestSupportFixture {
         |    f70c19a5-0725-4950-aa42-6489a9d73806
         |    6ccadbad-650c-47ec-936d-2ef42e5f3cda""".stripMargin
     )
-    inside(mockedVault.getBagIds("pdbs")) {
+    inside(mockedVault.getBagIds("pdbs", 1000, 1000)) {
       case Success(names) => names should contain only(
         UUID.fromString("9da0541a-d2c8-432e-8129-979a9830b427"),
         UUID.fromString("24d305fc-060c-4b3b-a5f5-9f212d463cbc"),

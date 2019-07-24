@@ -45,6 +45,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
       addProperty("auth-info.url", "http://hostThatDoesNotExist:20170/")
       addProperty("auth-info.connection-timeout-ms", 2000)
       addProperty("auth-info.read-timeout-ms", 2000)
+      addProperty("list-bags.connection-timeout-ms", 10000)
+      addProperty("list-bags.read-timeout-ms", 10000)
     })
 
     override val maxFileSizeToExtractContentFrom: Double = 64 * 1024 * 1024

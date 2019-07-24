@@ -35,7 +35,9 @@ trait EasySolr4filesIndexApp extends ApplicationWiring with AutoCloseable
   }
 
   def initSingleStore(storeName: String): Try[StoreSubmitted] = {
-    getBagIds(storeName)
+    val connTimeOutMs = configuration.properties.getInt("list-bags.connection-timeout-ms")
+    val readTimeOutMs = configuration.properties.getInt("list-bags.read-timeout-ms")
+    getBagIds(storeName, connTimeOutMs, readTimeOutMs)
       .flatMap(updateBags(storeName, _))
   }
 
