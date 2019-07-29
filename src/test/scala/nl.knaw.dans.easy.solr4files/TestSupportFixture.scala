@@ -75,6 +75,8 @@ trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeA
     // vault/stores is sometimes a folder, sometimes a dir
     private val vaultBaseDir = URLEncoder.encode(testDir.resolve("vault").toAbsolutePath.toString, "UTF8")
     override val vaultBaseUri = new URI(s"file:///$vaultBaseDir/")
+    override val listBagsConnTimeoutMs: Int = 2000
+    override val listBagsReadTimeoutMs: Int = 2000
   }
 
   def clearVault(): Unit = {
