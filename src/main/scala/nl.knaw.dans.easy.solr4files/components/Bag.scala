@@ -61,9 +61,9 @@ case class Bag(storeName: String,
 
   def loadDDM: Try[Elem] = vault
     .fileURL(storeName, bagId, "metadata/dataset.xml")
-    .flatMap(_.loadXml)
+    .flatMap(_.loadXml())
 
   def loadFilesXML: Try[Elem] = vault
     .fileURL(storeName, bagId, "metadata/files.xml")
-    .flatMap(_.loadXml)
+    .flatMap(_.loadXml())
 }
