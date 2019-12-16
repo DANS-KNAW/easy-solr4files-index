@@ -34,7 +34,7 @@ case class AuthorisationItem(itemId: String,
                              accessibleTo: RightsFor.Value,
                              visibleTo: RightsFor.Value,
                              licenseKey: String,
-                             licenseTitle: String
+                             licenseTitle: String,
                        ) {
   val isAccessible: Boolean = {
     accessibleTo != RightsFor.NONE
