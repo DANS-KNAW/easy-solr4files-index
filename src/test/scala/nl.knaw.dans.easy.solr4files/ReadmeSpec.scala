@@ -54,10 +54,10 @@ class FReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
     new File("pom.xml") should containTrimmed(clo.description)
   }
 
-  "user filters" should "be listed in docs/index.md" in {
-    val readme = Source.fromFile(new File("docs/index.md")).mkString
+  "user filters" should "be listed in docs/api/api.yml" in {
+    val readme = Source.fromFile(new File("docs/api/api.yml")).mkString
     SearchServlet.userFilters.foreach(
-      s => readme should include(s"`$s`")
+      s => readme should include(s"$s")
     )
   }
 }
