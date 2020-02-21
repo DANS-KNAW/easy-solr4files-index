@@ -123,9 +123,9 @@ components:
     Query:
       name: q
       description: |
-        A solr query.
+        A [standard](https://lucene.apache.org/solr/guide/6_6/the-standard-query-parser.html) solr query.
 
-        `text`: The query for the textual content. Becomes the `q` parameter of a [dismax] query. If not specified all accessible items are returned unless a restriction is specified.
+        `text`: The query for the textual content. Becomes the `q` parameter of a [dismax](https://lucene.apache.org/solr/guide/6_6/the-dismax-query-parser.html#the-dismax-query-parser) query. If not specified all accessible items are returned unless a restriction is specified.
 
         `skip`: For result paging, default 0.
 
@@ -134,6 +134,7 @@ components:
         `dataset_id`, `dataset_doi`: Restrict to one or some datasets. Repeating just one type of the identifiers returns items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
 
         `dataset_depositor_id`: Restrict to the specific dataset field. Repeating a field returns items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
+
 
       example:
         - text

@@ -19,43 +19,6 @@ SYNOPSIS
       a folder in a bag:     'id:ef425828-e4ae-4d58-bf6a-c89cd46df61c/data/files/Documents/*'
 
 
-### HTTP service
-
-When started with the sub-command `run-service` a REST API becomes available summarized in the following table.
-"Method" refers to the HTTP method used in the request. "Path" is the path pattern used. 
-Placeholders for variables start with a colon, optional parts are enclosed in square brackets.
-
-Method   | Path                             | Action
----------|----------------------------------|------------------------------------
-`GET`    | `/`                              | Return a simple message to indicate that the service is up: "EASY File index is running."
-`POST`   | `/fileindex/init[/:store]`       | Index all bag stores or just one. Possible obsolete items are cleared.
-`POST`   | `/fileindex/update/:store/:uuid` | Index all files of one bag. Possible obsolete file items are cleared.
-`DELETE` | `/fileindex/:store[/:uuid]`      | Remove all items from the index or the items of a store or bag.
-`DELETE` | `/fileindex`                     | Requires parameter q, a mandatory [standard] solr query that specifies the items to remove from the index.
-`GET`    | `/filesearch`                    | Return indexed metadata. Query parameters are optional, not known parameters are ignored.
-
-
-Parameters for `filesearch` | Description
-----------------------------|----------------
-`text`                      | The query for the textual content. Becomes the `q` parameter of a [dismax] query. If not specified all accessible items are returned unless a restriction is specified.
-`skip`                      | For result paging, default 0.
-`limit`                     | For result paging, default 10.
-`dataset_id`, `dataset_doi` | Restrict to one or some datasets. Repeating just one type of the identifiers returns items for each value. Mixing identifier types only returns items matching at least one of the values for each type.
-`dataset_depositor_id`      | Restrict to the specific dataset field. Repeating a field returns items with at least one of the values. Specifying multiple fields only returns items matching at least one of the values for each field.
-`file_mime_type`            | ,,
-`file_size`                 | ,,
-`file_checksum`             | ,,
-`dataset_title`             | ,,
-`dataset_creator`           | ,,
-`dataset_audience`          | ,,
-`dataset_relation`          | ,,
-`dataset_subject`           | ,,
-`dataset_coverage`          | ,,
-
-[dismax]: https://lucene.apache.org/solr/guide/6_6/the-dismax-query-parser.html#the-dismax-query-parser
-[standard]: https://lucene.apache.org/solr/guide/6_6/the-standard-query-parser.html
-
-
 DESCRIPTION
 -----------
 
@@ -162,6 +125,7 @@ BUILDING FROM SOURCE
 
 Prerequisites:
 
+* RPM
 * Java 8 or higher
 * Maven 3.3.3 or higher
 
