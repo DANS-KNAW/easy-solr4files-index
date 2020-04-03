@@ -25,11 +25,13 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.scalamock.handlers.CallHandler3
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterEach, FlatSpec, Inside, Matchers }
+import org.scalatest.{ BeforeAndAfterEach, Inside }
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Try
 
-trait TestSupportFixture extends FlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
+trait TestSupportFixture extends AnyFlatSpec with Matchers with Inside with BeforeAndAfterEach with MockFactory {
 
   val uuid: UUID = UUID.randomUUID()
   lazy val testDir: Path = {

@@ -18,12 +18,13 @@ package nl.knaw.dans.easy.solr4files
 import java.io.{ ByteArrayOutputStream, File }
 import java.nio.file.Paths
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import resource.managed
 
 import scala.io.Source
 
-class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
+class ReadmeSpec extends AnyFlatSpec with Matchers with CustomMatchers {
 
   private val configuration = Configuration(Paths.get("src/main/assembly/dist"))
   private val clo = new CommandLineOptions(Array[String](), configuration) {

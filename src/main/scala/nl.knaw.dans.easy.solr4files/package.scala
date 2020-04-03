@@ -119,8 +119,8 @@ package object solr4files extends DebugEnhancedLogging {
   }
 
   implicit class RichParams(val left: scalatra.Params) extends AnyVal {
-    def asString: String = if (left.isEmpty) "no params at all"
-                           else "params " + left.mkString("[", ",", "]")
+    def asString: String = if (left.size == 0) "no params at all"
+                           else "params " + left.toMap.mkString("[", ",", "]")
   }
 
   val xsiURI = "http://www.w3.org/2001/XMLSchema-instance"
